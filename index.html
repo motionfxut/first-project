@@ -3,24 +3,130 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hello World</title>
-  <style>
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      font-family: sans-serif;
-      background: #f0f0f0;
-    }
-    h1 {
-      font-size: 4rem;
-      color: #333;
-    }
-  </style>
+  <title>Track Day Log</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Hello, World!</h1>
+
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-mark">&#9650;</span>
+        <span class="logo-text">TRACKLOG</span>
+      </div>
+      <nav>
+        <button class="nav-btn active" data-view="log">+ Log Session</button>
+        <button class="nav-btn" data-view="sessions">Sessions</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- LOG SESSION VIEW -->
+    <section id="view-log" class="view active">
+      <div class="section-title">New Session</div>
+      <form id="session-form">
+
+        <div class="form-row two-col">
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="date" required>
+          </div>
+          <div class="form-group">
+            <label>Track</label>
+            <input type="text" id="track" placeholder="e.g. Laguna Seca" required>
+          </div>
+        </div>
+
+        <div class="form-row two-col">
+          <div class="form-group">
+            <label>Bike</label>
+            <input type="text" id="bike" placeholder="e.g. CBR600RR">
+          </div>
+          <div class="form-group">
+            <label>Run Group</label>
+            <select id="group">
+              <option value="">— Select —</option>
+              <option value="Novice">Novice</option>
+              <option value="Intermediate">Intermediate</option>
+              <option value="Advanced">Advanced</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row two-col">
+          <div class="form-group">
+            <label>Conditions</label>
+            <select id="conditions">
+              <option value="Sunny">Sunny</option>
+              <option value="Cloudy">Cloudy</option>
+              <option value="Damp">Damp</option>
+              <option value="Wet">Wet</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Tire Warmers</label>
+            <select id="tire-warmers">
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Lap Times <span class="label-hint">(mm:ss.ms — press Enter or + to add)</span></label>
+          <div class="lap-input-row">
+            <input type="text" id="lap-input" placeholder="1:32.456">
+            <button type="button" id="add-lap-btn">+</button>
+          </div>
+          <div id="lap-list" class="lap-list"></div>
+        </div>
+
+        <div class="form-group">
+          <label>What went well</label>
+          <textarea id="went-well" rows="2" placeholder="Smooth exits on T3, consistent braking..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>What to improve</label>
+          <textarea id="improve" rows="2" placeholder="Trail braking into T1, body position..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="notes" rows="2" placeholder="Setup changes, tire pressures, anything else..."></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">Save Session</button>
+        </div>
+
+      </form>
+    </section>
+
+    <!-- SESSIONS VIEW -->
+    <section id="view-sessions" class="view">
+      <div class="sessions-header">
+        <div class="section-title">Sessions</div>
+        <div id="stats-bar" class="stats-bar"></div>
+      </div>
+      <div id="session-list" class="session-list">
+        <div class="empty-state">No sessions yet. Log your first track day.</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- SESSION DETAIL MODAL -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-box">
+      <button class="modal-close">&times;</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
