@@ -90,10 +90,37 @@ main { max-width: 1100px; margin: 0 auto; }
 .hero {
   position: relative;
   height: 520px;
-  background: #1a1814 url('hero.jpg') center/cover no-repeat;
+  background:
+    url('hero.jpg') center/cover no-repeat,
+    linear-gradient(135deg, #0d0d0d 0%, #1a1410 40%, #0e1318 100%);
   overflow: hidden;
   display: flex;
   align-items: flex-end;
+}
+
+/* decorative racing stripes shown when no photo is loaded */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      -55deg,
+      transparent,
+      transparent 60px,
+      rgba(232,76,0,0.03) 60px,
+      rgba(232,76,0,0.03) 62px
+    );
+  pointer-events: none;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.6;
 }
 
 .hero-overlay {
