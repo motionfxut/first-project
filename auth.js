@@ -1,7 +1,7 @@
 import {
   auth, db, provider,
   signInWithPopup, signOut, onAuthStateChanged,
-  ref, set, get, push, remove
+  doc, getDoc, setDoc, collection, getDocs, deleteDoc, query, orderBy
 } from './firebase.js';
 
 // ── Exported state (app.js reads these) ─────────────────────────
@@ -88,61 +88,58 @@ function resetUserData() {
   userProfile  = { name: 'Rider', location: '' };
 }
 
-// ── Realtime Database: load ──────────────────────────────────────
+// ── Firestore: load ──────────────────────────────────────────────
 async function loadUserData(uid) {
   try {
-    const snap = await get(ref(db, 'users/' + uid));
-    if (snap.exists()) {
-      const data = snap.val();
-      userProfile  = data.profile  || { name: 'Rider', location: '' };
-      userBikes    = data.bikes    ? Object.values(data.bikes)    : [];
-      // Sessions stored as object keyed by id — convert to array sorted desc by date
-      if (data.sessions) {
-        userSessions = Object.values(data.sessions)
-          .sort((a, b) => new Date(b.date) - new Date(a.date));
-      } else {
-        userSessions = [];
-      }
+    const profileDoc = await getDoc(doc(db, 'users', uid));
+    if (profileDoc.exists()) {
+      const data = profileDoc.data();
+      userProfile = data.profile || { name: 'Rider', location: '' };
+      userBikes   = data.bikes   || [];
     }
+
+    const sessQ    = query(collection(db, 'users', uid, 'sessions'), orderBy('date', 'desc'));
+    const sessSnap = await getDocs(sessQ);
+    userSessions = sessSnap.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (err) {
-    console.warn('Realtime DB load failed, using localStorage:', err.message);
+    console.warn('Firestore load failed, using localStorage:', err.message);
     userProfile  = JSON.parse(localStorage.getItem('tl_profile')  || '{"name":"Rider","location":""}');
     userBikes    = JSON.parse(localStorage.getItem('tl_bikes')     || '[]');
     userSessions = JSON.parse(localStorage.getItem('tl_sessions')  || '[]');
   }
 }
 
-// ── Realtime Database: save ──────────────────────────────────────
+// ── Firestore: save ──────────────────────────────────────────────
 export async function saveProfile(profile) {
   userProfile = profile;
   if (!currentUser) return;
   try {
-    await set(ref(db, 'users/' + currentUser.uid + '/profile'), profile);
-  } catch (err) { console.warn('DB save failed:', err.message); }
+    await setDoc(doc(db, 'users', currentUser.uid), { profile }, { merge: true });
+  } catch (err) { console.warn('Firestore save failed:', err.message); }
 }
 
 export async function saveBikes(bikes) {
   userBikes = bikes;
   if (!currentUser) return;
   try {
-    await set(ref(db, 'users/' + currentUser.uid + '/bikes'), bikes);
-  } catch (err) { console.warn('DB save failed:', err.message); }
+    await setDoc(doc(db, 'users', currentUser.uid), { bikes }, { merge: true });
+  } catch (err) { console.warn('Firestore save failed:', err.message); }
 }
 
 export async function saveSession(session) {
   userSessions.unshift(session);
   if (!currentUser) return;
   try {
-    await set(ref(db, 'users/' + currentUser.uid + '/sessions/' + session.id), session);
-  } catch (err) { console.warn('DB save failed:', err.message); }
+    await setDoc(doc(db, 'users', currentUser.uid, 'sessions', String(session.id)), session);
+  } catch (err) { console.warn('Firestore save failed:', err.message); }
 }
 
 export async function deleteSession(id) {
   userSessions = userSessions.filter(s => s.id !== id);
   if (!currentUser) return;
   try {
-    await remove(ref(db, 'users/' + currentUser.uid + '/sessions/' + id));
-  } catch (err) { console.warn('DB delete failed:', err.message); }
+    await deleteDoc(doc(db, 'users', currentUser.uid, 'sessions', String(id)));
+  } catch (err) { console.warn('Firestore delete failed:', err.message); }
 }
 
 function showToast(msg) {
