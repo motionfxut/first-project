@@ -1,7 +1,7 @@
 import {
   auth, db, provider,
   signInWithPopup, signOut, onAuthStateChanged,
-  doc, getDoc, setDoc, collection, getDocs, query, orderBy
+  ref, set, get, push, remove
 } from './firebase.js';
 
 // ── Exported state (app.js reads these) ─────────────────────────
@@ -20,7 +20,6 @@ onAuthStateChanged(auth, async user => {
   if (user) {
     showUserMenu(user);
     await loadUserData(user.uid);
-    // Notify app.js that data is ready
     window.dispatchEvent(new CustomEvent('auth-ready', { detail: { user } }));
   } else {
     hideUserMenu();
@@ -33,7 +32,6 @@ onAuthStateChanged(auth, async user => {
 document.getElementById('google-signin-btn').addEventListener('click', async () => {
   try {
     await signInWithPopup(auth, provider);
-    // onAuthStateChanged will fire and handle the rest
   } catch (err) {
     console.error('Sign-in error:', err);
     showToast('Sign-in failed — please try again');
@@ -50,7 +48,6 @@ document.getElementById('user-avatar').addEventListener('click', () => {
   document.getElementById('user-dropdown').classList.toggle('hidden');
 });
 
-// Close dropdown when clicking outside
 document.addEventListener('click', e => {
   if (!e.target.closest('#user-menu')) {
     document.getElementById('user-dropdown').classList.add('hidden');
@@ -59,8 +56,8 @@ document.addEventListener('click', e => {
 
 // ── Show / hide the login overlay ───────────────────────────────
 export function requireAuth(pageName) {
-  if (!PROTECTED.includes(pageName)) return true; // not protected
-  if (currentUser) return true; // logged in
+  if (!PROTECTED.includes(pageName)) return true;
+  if (currentUser) return true;
   document.getElementById('login-overlay').classList.remove('hidden');
   return false;
 }
@@ -91,64 +88,61 @@ function resetUserData() {
   userProfile  = { name: 'Rider', location: '' };
 }
 
-// ── Firestore data loading ───────────────────────────────────────
+// ── Realtime Database: load ──────────────────────────────────────
 async function loadUserData(uid) {
   try {
-    // Profile
-    const profileDoc = await getDoc(doc(db, 'users', uid));
-    if (profileDoc.exists()) {
-      const data = profileDoc.data();
+    const snap = await get(ref(db, 'users/' + uid));
+    if (snap.exists()) {
+      const data = snap.val();
       userProfile  = data.profile  || { name: 'Rider', location: '' };
-      userBikes    = data.bikes    || [];
+      userBikes    = data.bikes    ? Object.values(data.bikes)    : [];
+      // Sessions stored as object keyed by id — convert to array sorted desc by date
+      if (data.sessions) {
+        userSessions = Object.values(data.sessions)
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
+      } else {
+        userSessions = [];
+      }
     }
-
-    // Sessions (subcollection)
-    const sessQ    = query(collection(db, 'users', uid, 'sessions'), orderBy('date', 'desc'));
-    const sessSnap = await getDocs(sessQ);
-    userSessions = sessSnap.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (err) {
-    // Firestore not ready yet — fall back to localStorage
-    console.warn('Firestore load failed, using localStorage:', err.message);
+    console.warn('Realtime DB load failed, using localStorage:', err.message);
     userProfile  = JSON.parse(localStorage.getItem('tl_profile')  || '{"name":"Rider","location":""}');
     userBikes    = JSON.parse(localStorage.getItem('tl_bikes')     || '[]');
     userSessions = JSON.parse(localStorage.getItem('tl_sessions')  || '[]');
   }
 }
 
-// ── Firestore data saving ────────────────────────────────────────
+// ── Realtime Database: save ──────────────────────────────────────
 export async function saveProfile(profile) {
   userProfile = profile;
   if (!currentUser) return;
   try {
-    await setDoc(doc(db, 'users', currentUser.uid), { profile }, { merge: true });
-  } catch (err) { console.warn('Firestore save failed:', err.message); }
+    await set(ref(db, 'users/' + currentUser.uid + '/profile'), profile);
+  } catch (err) { console.warn('DB save failed:', err.message); }
 }
 
 export async function saveBikes(bikes) {
   userBikes = bikes;
   if (!currentUser) return;
   try {
-    await setDoc(doc(db, 'users', currentUser.uid), { bikes }, { merge: true });
-  } catch (err) { console.warn('Firestore save failed:', err.message); }
+    await set(ref(db, 'users/' + currentUser.uid + '/bikes'), bikes);
+  } catch (err) { console.warn('DB save failed:', err.message); }
 }
 
 export async function saveSession(session) {
   userSessions.unshift(session);
   if (!currentUser) return;
   try {
-    const ref = doc(db, 'users', currentUser.uid, 'sessions', String(session.id));
-    await setDoc(ref, session);
-  } catch (err) { console.warn('Firestore save failed:', err.message); }
+    await set(ref(db, 'users/' + currentUser.uid + '/sessions/' + session.id), session);
+  } catch (err) { console.warn('DB save failed:', err.message); }
 }
 
 export async function deleteSession(id) {
   userSessions = userSessions.filter(s => s.id !== id);
   if (!currentUser) return;
   try {
-    await deleteDoc ? null : null; // imported above if needed
-    const { deleteDoc: del } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    await del(doc(db, 'users', currentUser.uid, 'sessions', String(id)));
-  } catch (err) { console.warn('Firestore delete failed:', err.message); }
+    await remove(ref(db, 'users/' + currentUser.uid + '/sessions/' + id));
+  } catch (err) { console.warn('DB delete failed:', err.message); }
 }
 
 function showToast(msg) {
