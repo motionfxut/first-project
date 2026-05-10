@@ -1,70 +1,591 @@
-const STORAGE_KEY = 'tracklog_sessions';
-const HERO_KEY    = 'tracklog_hero';
-let sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+'use strict';
+
+// ── Storage keys ──────────────────────────────────────────────────
+const K = {
+  sessions:  'tl_sessions',
+  bikes:     'tl_bikes',
+  profile:   'tl_profile',
+  community: 'tl_community',
+};
+
+// ── State ─────────────────────────────────────────────────────────
+let sessions  = load(K.sessions,  []);
+let bikes     = load(K.bikes,     []);
+let profile   = load(K.profile,   { name: 'Rider', location: '' });
+let community = load(K.community, seedCommunity());
 let lapTimes  = [];
+let pendingPhotos = []; // { dataURL, name }[]
 let chart     = null;
 
-// ── DOM refs ──────────────────────────────────────────────────────
-const form         = document.getElementById('session-form');
-const lapInput     = document.getElementById('lap-input');
-const addLapBtn    = document.getElementById('add-lap-btn');
-const lapListEl    = document.getElementById('lap-list');
-const modal        = document.getElementById('modal');
-const modalContent = document.getElementById('modal-content');
-const toastEl      = document.getElementById('toast');
+function load(key, def) {
+  try { return JSON.parse(localStorage.getItem(key)) || def; } catch { return def; }
+}
+function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
 // ── Navigation ────────────────────────────────────────────────────
-function switchView(name) {
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
-  if (name === 'sessions') { renderSessions(); buildChart(); }
-  if (name === 'home')     renderHome();
+const pages    = document.querySelectorAll('.page');
+const navLinks = document.querySelectorAll('.nav-link');
+
+function goTo(pageId) {
+  pages.forEach(p => p.classList.toggle('active', p.id === 'page-' + pageId));
+  navLinks.forEach(l => l.classList.toggle('active', l.dataset.page === pageId));
+  if (pageId === 'home')      renderHome();
+  if (pageId === 'profile')   renderProfile();
+  if (pageId === 'logbook')   renderLogbook();
+  if (pageId === 'community') renderCommunity();
+  if (pageId === 'store')     renderStore();
+  window.scrollTo(0, 0);
 }
 
-document.querySelectorAll('[data-view]').forEach(el => {
-  el.addEventListener('click', () => switchView(el.dataset.view));
+document.querySelectorAll('[data-page]').forEach(el => {
+  el.addEventListener('click', () => goTo(el.dataset.page));
 });
 
-// ── Hero photo ────────────────────────────────────────────────────
-const heroEl     = document.getElementById('hero');
-const heroUpload = document.getElementById('hero-upload');
+// ── HOME ─────────────────────────────────────────────────────────
+const NEWS = [
+  { tag:'Track Day', tagColor:'', title:'Utah Motorsports Campus Opens 2026 Season', body:'UMC kicks off its annual track day calendar with WERA and N2 dates through October. Open paddock and garage rentals available for the full season.', date:'May 3, 2026', href:'https://utmotorsports.com' },
+  { tag:'Announcement', tagColor:'blue', title:'N2 Track Days Expands West Coast Schedule', body:'N2 adds new dates at High Plains Raceway and The Ridge Motorsports Park. Intermediate group sessions sell out fast — registration opens May 15.', date:'May 1, 2026', href:'https://n2trackdays.com' },
+  { tag:'Gear', tagColor:'green', title:'Michelin Power Cup 2: Still the Tire to Beat Out West', body:'Riders at Buttonwillow and Chuckwalla continue to report excellent feel and consistent lap times across a full day of sessions on Cup 2s.', date:'Apr 28, 2026', href:'https://www.revzilla.com/motorcycle/michelin-power-cup-2-rear-tire' },
+  { tag:'Event', tagColor:'', title:'Keigwins at the Track Returns to Thunderhill for Summer', body:'Three-day camps and single-day events at Thunderhill Raceway in Willows, CA. Coaching available for all skill levels. Early registration discount ends June 1.', date:'Apr 22, 2026', href:'https://keigwins.com' },
+  { tag:'Track Day', tagColor:'blue', title:'Pacific Track Time Announces New Chuckwalla Dates', body:'PTT adds four dates at Chuckwalla Valley Raceway through summer. Early morning start times scheduled to beat the desert heat. Garages available.', date:'Apr 18, 2026', href:'https://pacifictracktime.com' },
+  { tag:'Safety', tagColor:'green', title:'Updated Run Group Standards for Western Track Day Orgs', body:'New joint guidelines clarify cornering line restrictions and passing zones for novice groups across major western US track day providers for 2026.', date:'Apr 10, 2026', href:'#' },
+];
 
-function applyHero(src) {
-  heroEl.style.backgroundImage = `url('${src}')`;
+function renderHome() {
+  // Hero stats
+  const heroStats = document.getElementById('hero-stats');
+  const total     = sessions.length;
+  const allBests  = sessions.map(s => bestLap(s.laps)).filter(Boolean);
+  const overall   = bestLap(allBests);
+  const trackSet  = new Set(sessions.map(s => s.track).filter(Boolean));
+  heroStats.innerHTML = [
+    { val: total,              cls: '',       lbl: 'Sessions Logged' },
+    { val: trackSet.size || 0, cls: '',       lbl: 'Tracks Visited'  },
+    { val: overall || '—',    cls: 'green',  lbl: 'Best Lap Ever'   },
+    { val: bikes.length || 0, cls: 'orange', lbl: 'Bikes in Garage' },
+  ].map(s => `
+    <div class="hero-stat">
+      <div class="hero-stat-val ${s.cls}">${s.val}</div>
+      <div class="hero-stat-lbl">${s.lbl}</div>
+    </div>`).join('');
+
+  // News
+  document.getElementById('news-grid').innerHTML = NEWS.map(n => `
+    <a class="news-card" href="${n.href}" target="_blank" rel="noopener">
+      <span class="news-tag ${n.tagColor}">${n.tag}</span>
+      <div class="news-title">${n.title}</div>
+      <div class="news-body">${n.body}</div>
+      <div class="news-date">${n.date}</div>
+    </a>`).join('');
 }
 
-const savedHero = localStorage.getItem(HERO_KEY);
-if (savedHero) applyHero(savedHero);
+// ── PROFILE ───────────────────────────────────────────────────────
+function renderProfile() {
+  document.getElementById('profile-name-display').textContent = profile.name || 'Rider';
+  const loc = profile.location ? `📍 ${profile.location}` : 'Add your location';
+  document.getElementById('profile-meta-display').textContent = loc;
+  document.getElementById('profile-name-input').value     = profile.name || '';
+  document.getElementById('profile-location-input').value = profile.location || '';
+  renderGarage();
+  renderPhotoReel();
+}
 
-heroUpload.addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    localStorage.setItem(HERO_KEY, ev.target.result);
-    applyHero(ev.target.result);
-    toast('Hero photo updated');
-  };
-  reader.readAsDataURL(file);
+document.getElementById('edit-profile-btn').addEventListener('click', () => {
+  document.getElementById('edit-profile-form').classList.remove('hidden');
+  document.getElementById('edit-profile-btn').classList.add('hidden');
 });
 
-// ── Default date ──────────────────────────────────────────────────
-document.getElementById('date').value = todayStr();
+document.getElementById('cancel-profile-btn').addEventListener('click', () => {
+  document.getElementById('edit-profile-form').classList.add('hidden');
+  document.getElementById('edit-profile-btn').classList.remove('hidden');
+});
 
-// ── Lap times ─────────────────────────────────────────────────────
+document.getElementById('save-profile-btn').addEventListener('click', () => {
+  profile.name     = document.getElementById('profile-name-input').value.trim() || 'Rider';
+  profile.location = document.getElementById('profile-location-input').value.trim();
+  save(K.profile, profile);
+  document.getElementById('edit-profile-form').classList.add('hidden');
+  document.getElementById('edit-profile-btn').classList.remove('hidden');
+  renderProfile();
+  toast('Profile saved');
+});
+
+// Garage
+document.getElementById('add-bike-btn').addEventListener('click', () => {
+  document.getElementById('add-bike-form').classList.remove('hidden');
+  document.getElementById('add-bike-btn').classList.add('hidden');
+});
+
+document.getElementById('cancel-bike-btn').addEventListener('click', () => {
+  document.getElementById('add-bike-form').classList.add('hidden');
+  document.getElementById('add-bike-btn').classList.remove('hidden');
+});
+
+document.getElementById('save-bike-btn').addEventListener('click', () => {
+  const year  = document.getElementById('bike-year').value.trim();
+  const make  = document.getElementById('bike-make').value.trim();
+  const model = document.getElementById('bike-model').value.trim();
+  if (!make || !model) { toast('Enter at least make and model'); return; }
+  bikes.push({ id: Date.now(), year, make, model,
+    color: document.getElementById('bike-color').value.trim(),
+    notes: document.getElementById('bike-notes').value.trim() });
+  save(K.bikes, bikes);
+  document.getElementById('add-bike-form').classList.add('hidden');
+  document.getElementById('add-bike-btn').classList.remove('hidden');
+  ['bike-year','bike-make','bike-model','bike-color','bike-notes'].forEach(id => document.getElementById(id).value = '');
+  renderGarage();
+  refreshBikeSelect();
+  toast('Bike added to garage');
+});
+
+function renderGarage() {
+  const el = document.getElementById('garage-grid');
+  if (!bikes.length) {
+    el.innerHTML = '<div class="empty-state">No bikes yet. Add your first bike above.</div>';
+    return;
+  }
+  el.innerHTML = bikes.map(b => `
+    <div class="bike-card">
+      <div class="bike-actions">
+        <button class="btn-icon del-bike" data-id="${b.id}" title="Remove">✕</button>
+      </div>
+      <div class="bike-year">${b.year || '—'}</div>
+      <div class="bike-name">${esc(b.make)} ${esc(b.model)}</div>
+      ${b.color ? `<div class="bike-color">${esc(b.color)}</div>` : ''}
+      ${b.notes ? `<div class="bike-notes">${esc(b.notes)}</div>` : ''}
+    </div>`).join('');
+
+  el.querySelectorAll('.del-bike').forEach(btn => {
+    btn.addEventListener('click', () => {
+      bikes = bikes.filter(b => b.id !== +btn.dataset.id);
+      save(K.bikes, bikes);
+      renderGarage();
+      refreshBikeSelect();
+    });
+  });
+}
+
+function renderPhotoReel() {
+  const reel = document.getElementById('photo-reel');
+  const photos = sessions.flatMap(s => (s.photos || []).map(p => ({ src: p, track: s.track, date: s.date })));
+  if (!photos.length) {
+    reel.innerHTML = '<div class="empty-state">Photos you upload to sessions will appear here.</div>';
+    return;
+  }
+  reel.innerHTML = photos.map(p => `
+    <div class="reel-item">
+      <img src="${p.src}" alt="${esc(p.track)} – ${fmtDate(p.date)}" loading="lazy">
+    </div>`).join('');
+}
+
+// ── LOG BOOK ──────────────────────────────────────────────────────
+function renderLogbook() {
+  refreshBikeSelect();
+  renderLogTable();
+  buildChart();
+  rebuildChartFilter();
+}
+
+function refreshBikeSelect() {
+  const sel = document.getElementById('log-bike');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Select bike —</option>' +
+    bikes.map(b => `<option value="${b.id}">${b.year ? b.year + ' ' : ''}${esc(b.make)} ${esc(b.model)}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+// Set default date
+document.getElementById('log-date').value = todayStr();
+
+// Lap chips
+const lapInput    = document.getElementById('log-lap-input');
+const lapChipList = document.getElementById('lap-chip-list');
+
 function addLap() {
-  const val = lapInput.value.trim();
-  if (!val) return;
-  lapTimes.push(val);
+  const v = lapInput.value.trim();
+  if (!v) return;
+  lapTimes.push(v);
   lapInput.value = '';
-  renderLapChips();
+  renderChips();
   lapInput.focus();
 }
 
-addLapBtn.addEventListener('click', addLap);
+document.getElementById('add-lap-btn').addEventListener('click', addLap);
 lapInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addLap(); } });
 
+function renderChips() {
+  const best = bestLap(lapTimes);
+  lapChipList.innerHTML = '';
+  lapTimes.forEach((t, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (lapTimes.length > 1 && t === best ? ' best' : '');
+    chip.innerHTML = `${t}${lapTimes.length > 1 && t === best ? ' ★' : ''} <button class="chip-remove" data-i="${i}">×</button>`;
+    lapChipList.appendChild(chip);
+  });
+  lapChipList.querySelectorAll('.chip-remove').forEach(btn => {
+    btn.addEventListener('click', () => { lapTimes.splice(+btn.dataset.i, 1); renderChips(); });
+  });
+}
+
+// Photo handling
+const photoInput   = document.getElementById('log-photos');
+const photoPreview = document.getElementById('log-photo-preview');
+
+photoInput.addEventListener('change', () => {
+  const files = [...photoInput.files];
+  pendingPhotos = [];
+  photoPreview.innerHTML = '';
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      pendingPhotos.push(e.target.result);
+      const img = document.createElement('img');
+      img.className = 'photo-thumb';
+      img.src = e.target.result;
+      photoPreview.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
+});
+
+// Form submit
+document.getElementById('log-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const bikeId = document.getElementById('log-bike').value;
+  const bike   = bikes.find(b => b.id === +bikeId);
+  const session = {
+    id:       Date.now(),
+    date:     document.getElementById('log-date').value,
+    track:    document.getElementById('log-track').value.trim(),
+    bikeId:   bikeId || null,
+    bikeName: bike ? `${bike.year ? bike.year + ' ' : ''}${bike.make} ${bike.model}` : document.getElementById('log-bike').value,
+    frontPsi: document.getElementById('log-front-psi').value,
+    rearPsi:  document.getElementById('log-rear-psi').value,
+    weather:  document.getElementById('log-weather').value,
+    temp:     document.getElementById('log-temp').value,
+    laps:     [...lapTimes],
+    wentWell: document.getElementById('log-well').value.trim(),
+    improve:  document.getElementById('log-improve').value.trim(),
+    notes:    document.getElementById('log-notes').value.trim(),
+    photos:   [...pendingPhotos],
+  };
+  sessions.unshift(session);
+  save(K.sessions, sessions);
+
+  // reset
+  document.getElementById('log-form').reset();
+  document.getElementById('log-date').value = todayStr();
+  lapTimes = [];
+  pendingPhotos = [];
+  renderChips();
+  photoPreview.innerHTML = '';
+
+  toast('Session saved ✓');
+  renderLogTable(true);
+  rebuildChartFilter();
+  buildChart();
+});
+
+document.getElementById('log-reset-btn').addEventListener('click', () => {
+  lapTimes = [];
+  pendingPhotos = [];
+  renderChips();
+  photoPreview.innerHTML = '';
+});
+
+function renderLogTable(animateFirst = false) {
+  const tbody  = document.getElementById('log-tbody');
+  const empty  = document.getElementById('log-empty');
+  const chart  = document.getElementById('chart-card');
+
+  if (!sessions.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+    chart.classList.add('hidden');
+    return;
+  }
+
+  empty.classList.add('hidden');
+  chart.classList.remove('hidden');
+
+  tbody.innerHTML = sessions.map((s, idx) => {
+    const best = bestLap(s.laps);
+    return `<tr data-id="${s.id}"${idx === 0 && animateFirst ? ' class="new-row"' : ''}>
+      <td>${fmtDate(s.date)}</td>
+      <td class="cell-track">${esc(s.track) || '—'}</td>
+      <td>${esc(s.bikeName) || '—'}</td>
+      <td>${s.frontPsi ? s.frontPsi + ' psi' : '—'}</td>
+      <td>${s.rearPsi  ? s.rearPsi  + ' psi' : '—'}</td>
+      <td>${s.weather  || '—'}</td>
+      <td>${s.temp     ? s.temp + '°F' : '—'}</td>
+      <td class="cell-best">${best || '—'}</td>
+      <td><span class="cell-count">${s.laps.length}</span></td>
+      <td><button class="btn-icon view-btn" data-id="${s.id}">↗</button></td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('tr').forEach(row => {
+    row.addEventListener('click', e => {
+      if (e.target.closest('.view-btn')) return;
+      openModal(sessions.find(s => s.id === +row.dataset.id));
+    });
+  });
+
+  tbody.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => openModal(sessions.find(s => s.id === +btn.dataset.id)));
+  });
+
+  if (animateFirst) {
+    const first = tbody.querySelector('tr');
+    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+// Chart
+function rebuildChartFilter() {
+  const sel    = document.getElementById('chart-filter');
+  const tracks = [...new Set(sessions.map(s => s.track).filter(Boolean))];
+  sel.innerHTML = '<option value="">All Tracks</option>' +
+    tracks.map(t => `<option>${esc(t)}</option>`).join('');
+  sel.onchange = buildChart;
+}
+
+function buildChart() {
+  const track    = document.getElementById('chart-filter').value;
+  const filtered = (track ? sessions.filter(s => s.track === track) : sessions)
+    .filter(s => bestLap(s.laps))
+    .map(s => ({ date: s.date, val: parseLapSec(bestLap(s.laps)) }))
+    .reverse();
+
+  const ctx = document.getElementById('lap-chart').getContext('2d');
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: filtered.map(d => fmtDateShort(d.date)),
+      datasets: [{
+        data: filtered.map(d => d.val),
+        borderColor: '#e84c00',
+        backgroundColor: 'rgba(232,76,0,.07)',
+        pointBackgroundColor: '#e84c00',
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        fill: true,
+        tension: .35,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ' ' + secToLap(c.parsed.y) } },
+      },
+      scales: {
+        y: {
+          grid: { color: '#e8e8e5' },
+          ticks: { color: '#999', font: { size: 11 }, callback: v => secToLap(v) },
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: '#999', font: { size: 11 } },
+        },
+      },
+    },
+  });
+}
+
+// Modal
+function openModal(s) {
+  if (!s) return;
+  const best = bestLap(s.laps);
+  const meta = [s.bikeName, s.weather, s.temp ? s.temp + '°F' : '', s.frontPsi ? `F: ${s.frontPsi} psi` : '', s.rearPsi ? `R: ${s.rearPsi} psi` : ''].filter(Boolean).join(' · ');
+
+  const lapsHTML = s.laps.length ? `
+    <div class="modal-section">
+      <div class="modal-label">Lap Times (${s.laps.length})</div>
+      <div class="chip-list">${s.laps.map(l =>
+        `<span class="chip${l === best && s.laps.length > 1 ? ' best' : ''}">${l}${l === best && s.laps.length > 1 ? ' ★' : ''}</span>`
+      ).join('')}</div>
+    </div>` : '';
+
+  const textBlock = (lbl, val) => val
+    ? `<div class="modal-section"><div class="modal-label">${lbl}</div><div class="modal-text">${esc(val)}</div></div>` : '';
+
+  const photosHTML = s.photos && s.photos.length
+    ? `<div class="modal-section"><div class="modal-label">Photos</div><div class="modal-photos">${s.photos.map(p => `<img src="${p}" loading="lazy">`).join('')}</div></div>` : '';
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-track">${esc(s.track) || '—'}</div>
+    <div class="modal-sub">${fmtDate(s.date)}${meta ? ' · ' + esc(meta) : ''}</div>
+    ${lapsHTML}
+    ${textBlock('What went well', s.wentWell)}
+    ${textBlock('What to improve', s.improve)}
+    ${textBlock('Notes', s.notes)}
+    ${photosHTML}
+    <div class="modal-footer">
+      <button class="btn-danger" id="del-session-btn">Delete session</button>
+    </div>`;
+
+  document.getElementById('del-session-btn').addEventListener('click', () => {
+    sessions = sessions.filter(x => x.id !== s.id);
+    save(K.sessions, sessions);
+    closeModal();
+    renderLogTable();
+    rebuildChartFilter();
+    buildChart();
+    toast('Session deleted');
+  });
+
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.querySelector('.modal-backdrop').addEventListener('click', closeModal);
+
+// ── COMMUNITY ─────────────────────────────────────────────────────
+function seedCommunity() {
+  return [
+    { id: 1, author: 'Jake R.', initials: 'JR', track: 'Utah Motorsports Campus', bike: '2022 Yamaha R6', bestLap: '1:58.4', frontPsi: 32, rearPsi: 20, suspension: 'Stock with 2 clicks softer rear compression. Front preload wound out 3 turns.', notes: 'Best day yet at UMC. Tire warmers on Cup 2s made a massive difference first thing in the morning. Finally nailing T8 exit.', date: '2026-05-01', likes: 14, liked: false },
+    { id: 2, author: 'Sierra M.', initials: 'SM', track: 'High Plains Raceway', bike: '2021 Kawasaki ZX-6R', bestLap: '2:03.7', frontPsi: 33, rearPsi: 20, suspension: 'Öhlins TTX36 rear. Front: 10 clicks compression, 12 rebound. Rear: 8 comp, 15 rebound, 5mm preload added.', notes: 'Cold morning but the track rubbered in nicely by session 3. HPR is so much fun in the tighter sections. Highly recommend the intermediate group here.', date: '2026-04-28', likes: 9, liked: false },
+    { id: 3, author: 'Tom B.', initials: 'TB', track: 'Chuckwalla Valley Raceway', bike: '2023 Honda CBR1000RR-R', bestLap: '1:44.2', frontPsi: 31, rearPsi: 19, suspension: 'Full Öhlins — stock settings as baseline then 2 clicks stiffer front comp for the long sweepers.', notes: 'Hot out there — 98°F by noon. Started 2 psi lower than usual and bled off a bit as temps climbed. Tire management is everything at Chuckwalla.', date: '2026-04-15', likes: 22, liked: false },
+    { id: 4, author: 'Dana K.', initials: 'DK', track: 'The Ridge Motorsports Park', bike: '2020 Ducati Panigale V4S', bestLap: '1:52.1', frontPsi: 30, rearPsi: 18, suspension: 'Öhlins factory unit. Dialed in more rebound front to help with the uphill braking zones.', notes: 'The Ridge is incredible. Technical in all the right ways. Getting the V4S settled in braking was the challenge of the day. Worth every mile of the drive up.', date: '2026-04-10', likes: 17, liked: false },
+  ];
+}
+
+document.getElementById('share-post-btn').addEventListener('click', () => {
+  document.getElementById('share-form-card').classList.remove('hidden');
+  document.getElementById('share-post-btn').classList.add('hidden');
+});
+
+document.getElementById('cancel-share-btn').addEventListener('click', () => {
+  document.getElementById('share-form-card').classList.add('hidden');
+  document.getElementById('share-post-btn').classList.remove('hidden');
+});
+
+document.getElementById('submit-share-btn').addEventListener('click', () => {
+  const track = document.getElementById('share-track').value.trim();
+  const bike  = document.getElementById('share-bike').value.trim();
+  if (!track && !bike) { toast('Add at least a track or bike'); return; }
+  const post = {
+    id:         Date.now(),
+    author:     profile.name || 'You',
+    initials:   initials(profile.name || 'Me'),
+    track,
+    bike,
+    bestLap:    document.getElementById('share-lap').value.trim(),
+    frontPsi:   document.getElementById('share-fpsi').value,
+    rearPsi:    document.getElementById('share-rpsi').value,
+    suspension: document.getElementById('share-suspension').value.trim(),
+    notes:      document.getElementById('share-notes').value.trim(),
+    date:       todayStr(),
+    likes:      0,
+    liked:      false,
+  };
+  community.unshift(post);
+  save(K.community, community);
+  ['share-track','share-bike','share-lap','share-fpsi','share-rpsi','share-suspension','share-notes']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('share-form-card').classList.add('hidden');
+  document.getElementById('share-post-btn').classList.remove('hidden');
+  renderCommunity();
+  toast('Posted to community');
+});
+
+function renderCommunity() {
+  const feed = document.getElementById('post-feed');
+  if (!community.length) {
+    feed.innerHTML = '<div class="empty-state">No posts yet. Be the first to share!</div>';
+    return;
+  }
+  feed.innerHTML = community.map(p => `
+    <div class="post-card" data-id="${p.id}">
+      <div class="post-header">
+        <div class="post-avatar">${esc(p.initials)}</div>
+        <div>
+          <div class="post-author">${esc(p.author)}</div>
+          <div class="post-date">${fmtDate(p.date)}</div>
+        </div>
+      </div>
+      <div class="post-body">
+        ${p.track ? `<div class="post-track">📍 ${esc(p.track)}</div>` : ''}
+        <div class="post-stats">
+          ${p.bike     ? `<div class="post-stat"><div class="post-stat-val">${esc(p.bike)}</div><div class="post-stat-lbl">Bike</div></div>` : ''}
+          ${p.bestLap  ? `<div class="post-stat"><div class="post-stat-val green">${esc(p.bestLap)}</div><div class="post-stat-lbl">Best Lap</div></div>` : ''}
+          ${p.frontPsi ? `<div class="post-stat"><div class="post-stat-val">${p.frontPsi} psi</div><div class="post-stat-lbl">Front</div></div>` : ''}
+          ${p.rearPsi  ? `<div class="post-stat"><div class="post-stat-val">${p.rearPsi} psi</div><div class="post-stat-lbl">Rear</div></div>` : ''}
+        </div>
+        ${p.suspension ? `<div class="post-suspension">⚙️ ${esc(p.suspension)}</div>` : ''}
+        ${p.notes      ? `<div class="post-notes">${esc(p.notes)}</div>` : ''}
+      </div>
+      <div class="post-footer">
+        <button class="like-btn${p.liked ? ' liked' : ''}" data-id="${p.id}">
+          ${p.liked ? '♥' : '♡'} ${p.likes}
+        </button>
+      </div>
+    </div>`).join('');
+
+  feed.querySelectorAll('.like-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const post = community.find(p => p.id === +btn.dataset.id);
+      if (!post) return;
+      post.liked = !post.liked;
+      post.likes += post.liked ? 1 : -1;
+      save(K.community, community);
+      renderCommunity();
+    });
+  });
+}
+
+// ── STORE ─────────────────────────────────────────────────────────
+const PRODUCTS = [
+  {
+    icon: '🪖',
+    cat: 'Helmet',
+    name: 'Shoei X-Fifteen',
+    badge: 'Top Pick',
+    price: 'From $899.99',
+    desc: 'The X-Fifteen is Shoei\'s flagship race helmet — used by MotoGP champions. Full carbon shell, dual-layer EPS liner, and Shoei\'s emergency quick-release system. The best helmet money can buy for track day riders.',
+    href: 'https://www.revzilla.com/motorcycle/shoei-x-fifteen-helmet',
+    retailer: 'RevZilla',
+  },
+  {
+    icon: '⚫',
+    cat: 'Tires — Front & Rear',
+    name: 'Michelin Power Cup 2',
+    badge: 'Recommended',
+    price: 'From $149.99 / tire',
+    desc: 'Developed directly from MotoGP technology, the Power Cup 2 delivers race-spec grip with enough durability to last a full track day. The go-to tire for intermediate and advanced track day riders out west.',
+    href: 'https://www.revzilla.com/motorcycle/michelin-power-cup-2-rear-tire',
+    retailer: 'RevZilla',
+  },
+];
+
+function renderStore() {
+  document.getElementById('product-grid').innerHTML = PRODUCTS.map(p => `
+    <div class="product-card">
+      <div class="product-img">${p.icon}</div>
+      <div class="product-body">
+        <div class="product-cat">${p.cat}</div>
+        <div class="product-name">${p.name}</div>
+        <div class="product-badge">${p.badge}</div>
+        <div class="product-desc">${p.desc}</div>
+        <div class="product-footer">
+          <div class="product-price">${p.price}</div>
+          <a class="product-link" href="${p.href}" target="_blank" rel="noopener">
+            Shop ${p.retailer} →
+          </a>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────
 function parseLapSec(str) {
+  if (!str) return Infinity;
   const m = str.match(/^(\d+):(\d{2})\.(\d+)$/);
   if (m) return +m[1] * 60 + +m[2] + parseFloat('0.' + m[3]);
   const n = parseFloat(str);
@@ -76,273 +597,11 @@ function bestLap(laps) {
   return laps.reduce((b, l) => parseLapSec(l) < parseLapSec(b) ? l : b);
 }
 
-function renderLapChips() {
-  const best = bestLap(lapTimes);
-  lapListEl.innerHTML = '';
-  lapTimes.forEach((lap, i) => {
-    const chip = document.createElement('div');
-    chip.className = 'lap-chip' + (lap === best && lapTimes.length > 1 ? ' best' : '');
-    chip.innerHTML = `${lap}${lapTimes.length > 1 && lap === best ? ' ★' : ''} <span class="remove-lap" data-i="${i}">&times;</span>`;
-    lapListEl.appendChild(chip);
-  });
-  lapListEl.querySelectorAll('.remove-lap').forEach(btn => {
-    btn.addEventListener('click', () => {
-      lapTimes.splice(+btn.dataset.i, 1);
-      renderLapChips();
-    });
-  });
+function secToLap(s) {
+  const m = Math.floor(s / 60);
+  return `${m}:${(s - m * 60).toFixed(3).padStart(6, '0')}`;
 }
 
-// ── Save session ──────────────────────────────────────────────────
-form.addEventListener('submit', e => {
-  e.preventDefault();
-  const session = {
-    id:          Date.now(),
-    date:        document.getElementById('date').value,
-    track:       document.getElementById('track').value.trim(),
-    bike:        document.getElementById('bike').value.trim(),
-    group:       document.getElementById('group').value,
-    conditions:  document.getElementById('conditions').value,
-    tireWarmers: document.getElementById('tire-warmers').value,
-    laps:        [...lapTimes],
-    wentWell:    document.getElementById('went-well').value.trim(),
-    improve:     document.getElementById('improve').value.trim(),
-    notes:       document.getElementById('notes').value.trim(),
-  };
-  sessions.unshift(session);
-  save();
-  form.reset();
-  document.getElementById('date').value = todayStr();
-  lapTimes = [];
-  renderLapChips();
-  toast('Session saved ✓');
-  // Switch to sessions view and highlight new row
-  switchView('sessions');
-  requestAnimationFrame(() => {
-    const firstRow = document.querySelector('#session-tbody tr');
-    if (firstRow) {
-      firstRow.classList.add('new-row');
-      firstRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  });
-});
-
-function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions)); }
-
-// ── Home view ─────────────────────────────────────────────────────
-function renderHome() {
-  const statsEl  = document.getElementById('home-stats');
-  const recentEl = document.getElementById('home-recent');
-  const total    = sessions.length;
-  const allBests = sessions.map(s => bestLap(s.laps)).filter(Boolean);
-  const overall  = bestLap(allBests);
-  const tracks   = new Set(sessions.map(s => s.track)).size;
-
-  statsEl.innerHTML = [
-    { val: total,              label: 'Sessions',      green: false },
-    { val: tracks || 0,       label: 'Tracks',         green: false },
-    { val: overall || '—',    label: 'Best Lap Ever',  green: !!overall },
-  ].map(s => `
-    <div class="home-stat-card">
-      <div class="home-stat-value${s.green ? ' green' : ''}">${s.val}</div>
-      <div class="home-stat-label">${s.label}</div>
-    </div>`).join('');
-
-  if (!sessions.length) {
-    recentEl.innerHTML = '<div class="home-empty">No sessions yet — log your first track day.</div>';
-    return;
-  }
-
-  const recent = sessions.slice(0, 6);
-  recentEl.innerHTML = `<div class="home-recent-row">${recent.map(s => {
-    const best = bestLap(s.laps);
-    return `<div class="recent-card" data-id="${s.id}">
-      <div>
-        <div class="recent-track">${s.track || '—'}</div>
-        <div class="recent-meta">${fmtDate(s.date)}${s.bike ? ' · ' + s.bike : ''}</div>
-      </div>
-      ${best ? `<div><div class="recent-best">${best}</div><div class="recent-best-label">Best</div></div>` : ''}
-    </div>`;
-  }).join('')}</div>`;
-
-  recentEl.querySelectorAll('.recent-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const s = sessions.find(x => x.id === +card.dataset.id);
-      if (s) openModal(s);
-    });
-  });
-}
-
-// ── Sessions table ────────────────────────────────────────────────
-function renderSessions() {
-  const tbody    = document.getElementById('session-tbody');
-  const emptyEl  = document.getElementById('table-empty');
-  const statsBar = document.getElementById('stats-bar');
-
-  // stats
-  const total   = sessions.length;
-  const allBests = sessions.map(s => bestLap(s.laps)).filter(Boolean);
-  const overall  = bestLap(allBests);
-  statsBar.innerHTML = `
-    <div class="stat"><div class="stat-value">${total}</div><div class="stat-label">Sessions</div></div>
-    ${overall ? `<div class="stat"><div class="stat-value green">${overall}</div><div class="stat-label">Best Lap Ever</div></div>` : ''}
-  `;
-
-  if (!sessions.length) {
-    tbody.innerHTML = '';
-    emptyEl.classList.remove('hidden');
-    document.getElementById('chart-card').classList.add('hidden');
-    return;
-  }
-
-  emptyEl.classList.add('hidden');
-  document.getElementById('chart-card').classList.remove('hidden');
-
-  tbody.innerHTML = sessions.map(s => {
-    const best = bestLap(s.laps);
-    return `<tr data-id="${s.id}">
-      <td>${fmtDate(s.date)}</td>
-      <td class="td-track">${esc(s.track) || '—'}</td>
-      <td>${esc(s.bike) || '—'}</td>
-      <td>${esc(s.group) || '—'}</td>
-      <td>${esc(s.conditions) || '—'}</td>
-      <td class="best-lap-cell">${best || '—'}</td>
-      <td><span class="lap-count">${s.laps.length}</span></td>
-      <td class="td-actions"><button title="View" data-id="${s.id}">↗</button></td>
-    </tr>`;
-  }).join('');
-
-  tbody.querySelectorAll('tr').forEach(row => {
-    row.addEventListener('click', e => {
-      if (e.target.closest('.td-actions')) return;
-      const s = sessions.find(x => x.id === +row.dataset.id);
-      if (s) openModal(s);
-    });
-  });
-
-  tbody.querySelectorAll('.td-actions button').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const s = sessions.find(x => x.id === +btn.dataset.id);
-      if (s) openModal(s);
-    });
-  });
-
-  // rebuild chart track filter
-  buildChartFilter();
-}
-
-// ── Chart ─────────────────────────────────────────────────────────
-function buildChartFilter() {
-  const sel    = document.getElementById('chart-track-filter');
-  const tracks = [...new Set(sessions.map(s => s.track).filter(Boolean))];
-  sel.innerHTML = `<option value="">All Tracks</option>` +
-    tracks.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
-  sel.onchange = buildChart;
-}
-
-function buildChart() {
-  const sel      = document.getElementById('chart-track-filter');
-  const filter   = sel ? sel.value : '';
-  const filtered = filter ? sessions.filter(s => s.track === filter) : sessions;
-  const data     = filtered.map(s => ({ date: s.date, best: bestLap(s.laps) }))
-    .filter(d => d.best)
-    .reverse();
-
-  const ctx = document.getElementById('lap-chart').getContext('2d');
-  if (chart) chart.destroy();
-
-  chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: data.map(d => fmtDateShort(d.date)),
-      datasets: [{
-        label: 'Best Lap',
-        data: data.map(d => parseLapSec(d.best)),
-        borderColor: '#e84c00',
-        backgroundColor: 'rgba(232,76,0,0.07)',
-        pointBackgroundColor: '#e84c00',
-        pointRadius: 5,
-        pointHoverRadius: 7,
-        fill: true,
-        tension: 0.35,
-        borderWidth: 2,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => ' ' + secToLap(ctx.parsed.y),
-          }
-        }
-      },
-      scales: {
-        y: {
-          grid: { color: '#e4e1da' },
-          ticks: {
-            color: '#888580',
-            font: { size: 11 },
-            callback: v => secToLap(v),
-          }
-        },
-        x: {
-          grid: { display: false },
-          ticks: { color: '#888580', font: { size: 11 } }
-        }
-      }
-    }
-  });
-}
-
-// ── Modal ─────────────────────────────────────────────────────────
-function openModal(s) {
-  const best = bestLap(s.laps);
-  const meta = [s.bike, s.group, s.conditions, s.tireWarmers ? `Warmers: ${s.tireWarmers}` : ''].filter(Boolean).join(' · ');
-
-  const lapsHTML = s.laps.length ? `
-    <div class="modal-section">
-      <div class="modal-section-label">Lap Times (${s.laps.length})</div>
-      <div class="modal-laps">${s.laps.map(l =>
-        `<div class="lap-chip${l === best && s.laps.length > 1 ? ' best' : ''}">${l}${l === best && s.laps.length > 1 ? ' ★' : ''}</div>`
-      ).join('')}</div>
-    </div>` : '';
-
-  const textSec = (label, val) => val
-    ? `<div class="modal-section"><div class="modal-section-label">${label}</div><div class="modal-text">${esc(val)}</div></div>` : '';
-
-  modalContent.innerHTML = `
-    <div class="modal-track">${esc(s.track) || '—'}</div>
-    <div class="modal-sub">${fmtDate(s.date)}${meta ? ' · ' + esc(meta) : ''}</div>
-    ${lapsHTML}
-    ${textSec('What went well', s.wentWell)}
-    ${textSec('What to improve', s.improve)}
-    ${textSec('Notes', s.notes)}
-    <div class="modal-footer">
-      <button class="btn-danger" id="delete-btn">Delete session</button>
-    </div>
-  `;
-
-  document.getElementById('delete-btn').addEventListener('click', () => {
-    sessions = sessions.filter(x => x.id !== s.id);
-    save();
-    closeModal();
-    renderSessions();
-    renderHome();
-    toast('Session deleted');
-  });
-
-  modal.classList.remove('hidden');
-}
-
-function closeModal() { modal.classList.add('hidden'); }
-document.querySelector('.modal-close').addEventListener('click', closeModal);
-document.querySelector('.modal-backdrop').addEventListener('click', closeModal);
-
-// ── Helpers ───────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().split('T')[0]; }
 
 function fmtDate(str) {
@@ -357,23 +616,22 @@ function fmtDateShort(str) {
   return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function secToLap(s) {
-  if (s == null) return '—';
-  const m = Math.floor(s / 60);
-  const rem = (s - m * 60).toFixed(3).padStart(6, '0');
-  return `${m}:${rem}`;
-}
-
 function esc(str) {
   if (!str) return '';
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function initials(name) {
+  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
 function toast(msg) {
-  toastEl.textContent = msg;
-  toastEl.classList.add('show');
-  setTimeout(() => toastEl.classList.remove('show'), 2400);
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2400);
 }
 
-// ── Init ──────────────────────────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────────────────
 renderHome();

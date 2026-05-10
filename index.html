@@ -5,198 +5,365 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TrackLog</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <header>
-    <div class="header-inner">
-      <div class="logo">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" stroke="#e84c00" stroke-width="1.5"/><path d="M9 4v5l3 2" stroke="#e84c00" stroke-width="1.5" stroke-linecap="round"/></svg>
-        <span class="logo-text">TrackLog</span>
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-inner">
+      <div class="nav-logo">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <circle cx="11" cy="11" r="10" stroke="#e84c00" stroke-width="1.8"/>
+          <path d="M11 5.5v6l3.5 2" stroke="#e84c00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>TrackLog</span>
       </div>
-      <nav>
-        <button class="nav-btn active" data-view="home">Home</button>
-        <button class="nav-btn" data-view="log">Log Session</button>
-        <button class="nav-btn" data-view="sessions">Sessions</button>
-      </nav>
+      <div class="nav-links">
+        <button class="nav-link active" data-page="home">Home</button>
+        <button class="nav-link" data-page="profile">Profile</button>
+        <button class="nav-link" data-page="logbook">Log Book</button>
+        <button class="nav-link" data-page="community">Community</button>
+        <button class="nav-link" data-page="store">Store</button>
+      </div>
+      <button class="nav-cta" data-page="logbook">+ Log Session</button>
     </div>
-  </header>
+  </nav>
 
   <main>
 
-    <!-- HOME VIEW -->
-    <section id="view-home" class="view active">
+    <!-- ═══════════════════════════════════════════════════════════ HOME -->
+    <div class="page active" id="page-home">
 
-      <div class="hero" id="hero">
-        <div class="hero-overlay"></div>
-        <div class="hero-content">
-          <div class="hero-eyebrow">Track Day Journal</div>
-          <h1 class="hero-title">Ride. Log.<br>Improve.</h1>
-          <p class="hero-sub">Track every session, lap, and lesson on two wheels.</p>
-          <button class="hero-cta" data-view="log">Log a Session</button>
+      <div class="hero">
+        <div class="hero-inner">
+          <div class="hero-badge">Track Day Journal</div>
+          <h1 class="hero-h1">Ride More.<br>Log Everything.</h1>
+          <p class="hero-p">The complete platform for motorcycle track day riders — log sessions, track your progress, and connect with the community.</p>
+          <div class="hero-actions">
+            <button class="btn-primary" data-page="logbook">Start Logging</button>
+            <button class="btn-ghost-white" data-page="community">Join Community</button>
+          </div>
         </div>
-        <label class="hero-photo-btn" title="Upload hero photo">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-          Change Photo
-          <input type="file" id="hero-upload" accept="image/*" style="display:none">
-        </label>
+        <div class="hero-stats" id="hero-stats"></div>
       </div>
 
-      <div class="home-body">
+      <div class="content-wrap">
+        <div class="section-hd">
+          <div>
+            <h2 class="section-title">Track Day News</h2>
+            <p class="section-sub">Latest from the western US track day scene</p>
+          </div>
+        </div>
+        <div class="news-grid" id="news-grid"></div>
+      </div>
 
-        <div class="home-stats" id="home-stats"></div>
+    </div>
 
-        <div class="home-section">
-          <div class="home-section-label">Recent Sessions</div>
-          <div id="home-recent"></div>
+    <!-- ══════════════════════════════════════════════════════ PROFILE -->
+    <div class="page" id="page-profile">
+      <div class="content-wrap">
+
+        <!-- Profile header -->
+        <div class="profile-header card">
+          <div class="profile-avatar" id="profile-avatar-display">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          </div>
+          <div class="profile-info">
+            <div class="profile-name" id="profile-name-display">Rider</div>
+            <div class="profile-meta" id="profile-meta-display">Add your name to get started</div>
+          </div>
+          <button class="btn-outline" id="edit-profile-btn">Edit Profile</button>
         </div>
 
-      </div>
-    </section>
-
-    <!-- LOG SESSION VIEW -->
-    <section id="view-log" class="view">
-      <div class="page-header">
-        <h2 class="page-title">Log Session</h2>
-        <p class="page-sub">Record your track day details below.</p>
-      </div>
-
-      <div class="log-layout">
-        <form id="session-form" class="log-form card">
-
-          <div class="form-row two-col">
+        <!-- Edit profile form (hidden by default) -->
+        <div class="card hidden" id="edit-profile-form">
+          <div class="card-title">Edit Profile</div>
+          <div class="form-grid-2">
             <div class="form-group">
-              <label>Date</label>
-              <input type="date" id="date" required>
+              <label>Display Name</label>
+              <input type="text" id="profile-name-input" placeholder="Your name">
             </div>
+            <div class="form-group">
+              <label>Location</label>
+              <input type="text" id="profile-location-input" placeholder="e.g. Salt Lake City, UT">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-ghost" id="cancel-profile-btn">Cancel</button>
+            <button class="btn-primary" id="save-profile-btn">Save</button>
+          </div>
+        </div>
+
+        <!-- Garage -->
+        <div class="section-hd">
+          <div>
+            <h2 class="section-title">My Garage</h2>
+            <p class="section-sub">Your bikes</p>
+          </div>
+          <button class="btn-outline" id="add-bike-btn">+ Add Bike</button>
+        </div>
+
+        <div class="card hidden" id="add-bike-form">
+          <div class="card-title">Add Bike</div>
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label>Year</label>
+              <input type="number" id="bike-year" placeholder="2023" min="1980" max="2030">
+            </div>
+            <div class="form-group">
+              <label>Make</label>
+              <input type="text" id="bike-make" placeholder="Yamaha">
+            </div>
+            <div class="form-group">
+              <label>Model</label>
+              <input type="text" id="bike-model" placeholder="YZF-R6">
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Color / Livery</label>
+              <input type="text" id="bike-color" placeholder="Blue / Race Blu">
+            </div>
+            <div class="form-group">
+              <label>Notes</label>
+              <input type="text" id="bike-notes" placeholder="Stock suspension, Akrapovic exhaust...">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-ghost" id="cancel-bike-btn">Cancel</button>
+            <button class="btn-primary" id="save-bike-btn">Add to Garage</button>
+          </div>
+        </div>
+
+        <div class="garage-grid" id="garage-grid">
+          <div class="empty-state">No bikes yet. Add your first bike above.</div>
+        </div>
+
+        <!-- Photo reel -->
+        <div class="section-hd" id="reel-header" style="margin-top:40px">
+          <div>
+            <h2 class="section-title">Session Photos</h2>
+            <p class="section-sub">Photos uploaded to your log book sessions</p>
+          </div>
+        </div>
+        <div class="photo-reel" id="photo-reel">
+          <div class="empty-state">Photos you upload to sessions will appear here.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ LOG BOOK -->
+    <div class="page" id="page-logbook">
+      <div class="content-wrap">
+
+        <!-- Log form -->
+        <div class="card" id="log-form-card">
+          <div class="card-title">New Session</div>
+          <form id="log-form">
+
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="log-date" required>
+              </div>
+              <div class="form-group">
+                <label>Track</label>
+                <input type="text" id="log-track" placeholder="Utah Motorsports Campus" required>
+              </div>
+              <div class="form-group">
+                <label>Bike</label>
+                <select id="log-bike">
+                  <option value="">— Select bike —</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-grid-4">
+              <div class="form-group">
+                <label>Front PSI</label>
+                <input type="number" id="log-front-psi" placeholder="32" min="20" max="50" step="0.5">
+              </div>
+              <div class="form-group">
+                <label>Rear PSI</label>
+                <input type="number" id="log-rear-psi" placeholder="20" min="15" max="50" step="0.5">
+              </div>
+              <div class="form-group">
+                <label>Weather</label>
+                <select id="log-weather">
+                  <option value="Sunny">Sunny</option>
+                  <option value="Cloudy">Cloudy</option>
+                  <option value="Damp">Damp</option>
+                  <option value="Wet">Wet</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Temp (°F)</label>
+                <input type="number" id="log-temp" placeholder="75" min="-10" max="120">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Lap Times <span class="label-hint">— press Enter or + to add each time</span></label>
+              <div class="lap-row">
+                <input type="text" id="log-lap-input" placeholder="1:32.456">
+                <button type="button" class="btn-add-lap" id="add-lap-btn">+</button>
+              </div>
+              <div class="chip-list" id="lap-chip-list"></div>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label>What went well</label>
+                <textarea id="log-well" rows="3" placeholder="Smooth exits on T3, consistent braking..."></textarea>
+              </div>
+              <div class="form-group">
+                <label>What to improve</label>
+                <textarea id="log-improve" rows="3" placeholder="Trail braking into T1, body position..."></textarea>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Notes</label>
+              <textarea id="log-notes" rows="2" placeholder="Tire warmers on/off, suspension changes, anything else..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Photos <span class="label-hint">— select multiple</span></label>
+              <input type="file" id="log-photos" accept="image/*" multiple class="file-input">
+              <div class="photo-preview" id="log-photo-preview"></div>
+            </div>
+
+            <div class="form-actions">
+              <button type="reset" class="btn-ghost" id="log-reset-btn">Clear</button>
+              <button type="submit" class="btn-primary">Save Session →</button>
+            </div>
+
+          </form>
+        </div>
+
+        <!-- Chart -->
+        <div class="card" id="chart-card">
+          <div class="chart-hd">
+            <span class="card-title" style="margin-bottom:0">Lap Time Progression</span>
+            <select id="chart-filter" class="select-sm"></select>
+          </div>
+          <div class="chart-wrap"><canvas id="lap-chart"></canvas></div>
+        </div>
+
+        <!-- Table -->
+        <div class="card table-card">
+          <div class="card-title">Session Log</div>
+          <div class="table-scroll">
+            <table class="data-table" id="log-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Track</th>
+                  <th>Bike</th>
+                  <th>F PSI</th>
+                  <th>R PSI</th>
+                  <th>Weather</th>
+                  <th>Temp</th>
+                  <th>Best Lap</th>
+                  <th>Laps</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="log-tbody"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="log-empty">No sessions yet — log your first track day above.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════ COMMUNITY -->
+    <div class="page" id="page-community">
+      <div class="content-wrap">
+
+        <div class="section-hd">
+          <div>
+            <h2 class="section-title">Community</h2>
+            <p class="section-sub">Share sessions, setups, and tips with other track day riders</p>
+          </div>
+          <button class="btn-primary" id="share-post-btn">Share Session</button>
+        </div>
+
+        <!-- Share form -->
+        <div class="card hidden" id="share-form-card">
+          <div class="card-title">Share to Community</div>
+          <div class="form-grid-2">
             <div class="form-group">
               <label>Track</label>
-              <input type="text" id="track" placeholder="e.g. Laguna Seca" required>
+              <input type="text" id="share-track" placeholder="Utah Motorsports Campus">
             </div>
-          </div>
-
-          <div class="form-row two-col">
             <div class="form-group">
               <label>Bike</label>
-              <input type="text" id="bike" placeholder="e.g. CBR600RR">
-            </div>
-            <div class="form-group">
-              <label>Run Group</label>
-              <select id="group">
-                <option value="">— Select —</option>
-                <option value="Novice">Novice</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Advanced">Advanced</option>
-              </select>
+              <input type="text" id="share-bike" placeholder="2022 Yamaha R6">
             </div>
           </div>
-
-          <div class="form-row two-col">
+          <div class="form-grid-3">
             <div class="form-group">
-              <label>Conditions</label>
-              <select id="conditions">
-                <option value="Sunny">Sunny</option>
-                <option value="Cloudy">Cloudy</option>
-                <option value="Damp">Damp</option>
-                <option value="Wet">Wet</option>
-              </select>
+              <label>Best Lap</label>
+              <input type="text" id="share-lap" placeholder="1:58.4">
             </div>
             <div class="form-group">
-              <label>Tire Warmers</label>
-              <select id="tire-warmers">
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
+              <label>Front PSI</label>
+              <input type="number" id="share-fpsi" placeholder="32">
+            </div>
+            <div class="form-group">
+              <label>Rear PSI</label>
+              <input type="number" id="share-rpsi" placeholder="20">
             </div>
           </div>
-
           <div class="form-group">
-            <label>Lap Times <span class="label-hint">— type and press Enter or + to add</span></label>
-            <div class="lap-input-row">
-              <input type="text" id="lap-input" placeholder="1:32.456">
-              <button type="button" id="add-lap-btn">+</button>
-            </div>
-            <div id="lap-list" class="lap-list"></div>
+            <label>Suspension Setup</label>
+            <textarea id="share-suspension" rows="2" placeholder="Öhlins TTX — Front: 10 clicks comp, 12 rebound. Rear: 8 comp, 15 rebound..."></textarea>
           </div>
-
-          <div class="form-row two-col">
-            <div class="form-group">
-              <label>What went well</label>
-              <textarea id="went-well" rows="3" placeholder="Smooth exits on T3..."></textarea>
-            </div>
-            <div class="form-group">
-              <label>What to improve</label>
-              <textarea id="improve" rows="3" placeholder="Trail braking into T1..."></textarea>
-            </div>
-          </div>
-
           <div class="form-group">
             <label>Notes</label>
-            <textarea id="notes" rows="2" placeholder="Setup changes, tire pressures..."></textarea>
+            <textarea id="share-notes" rows="2" placeholder="How was the day? Any tips?"></textarea>
           </div>
-
           <div class="form-actions">
-            <button type="reset" class="btn-ghost">Clear</button>
-            <button type="submit" class="btn-primary">Save Session →</button>
+            <button class="btn-ghost" id="cancel-share-btn">Cancel</button>
+            <button class="btn-primary" id="submit-share-btn">Post to Community</button>
           </div>
-
-        </form>
-      </div>
-    </section>
-
-    <!-- SESSIONS VIEW -->
-    <section id="view-sessions" class="view">
-      <div class="page-header sessions-page-header">
-        <div>
-          <h2 class="page-title">Sessions</h2>
-          <p class="page-sub">All your track days in one place.</p>
         </div>
-        <div id="stats-bar" class="stats-bar"></div>
-      </div>
 
-      <!-- CHART -->
-      <div class="card chart-card" id="chart-card">
-        <div class="chart-header">
-          <span class="chart-title">Best Lap Progression</span>
-          <select id="chart-track-filter" class="chart-filter"></select>
-        </div>
-        <div class="chart-wrap">
-          <canvas id="lap-chart"></canvas>
-        </div>
-      </div>
+        <div class="post-feed" id="post-feed"></div>
 
-      <!-- TABLE -->
-      <div class="card table-card">
-        <table class="session-table" id="session-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Track</th>
-              <th>Bike</th>
-              <th>Group</th>
-              <th>Conditions</th>
-              <th>Best Lap</th>
-              <th>Laps</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="session-tbody"></tbody>
-        </table>
-        <div id="table-empty" class="table-empty hidden">No sessions yet. Log your first track day.</div>
       </div>
-    </section>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════ STORE -->
+    <div class="page" id="page-store">
+      <div class="content-wrap">
+
+        <div class="section-hd">
+          <div>
+            <h2 class="section-title">Recommended Gear</h2>
+            <p class="section-sub">Tried and tested equipment for track day riders</p>
+          </div>
+        </div>
+
+        <div class="product-grid" id="product-grid"></div>
+
+      </div>
+    </div>
 
   </main>
 
   <!-- SESSION DETAIL MODAL -->
-  <div id="modal" class="modal hidden">
+  <div class="modal hidden" id="modal">
     <div class="modal-backdrop"></div>
     <div class="modal-box">
-      <button class="modal-close">&times;</button>
-      <div id="modal-content"></div>
+      <button class="modal-close" id="modal-close">&times;</button>
+      <div id="modal-body"></div>
     </div>
   </div>
 
