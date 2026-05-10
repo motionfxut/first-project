@@ -1,6 +1,24 @@
 'use strict';
 
-// ── Storage keys ──────────────────────────────────────────────────
+// ── Auth integration ──────────────────────────────────────────────
+// auth.js (ES module) runs in parallel and fires 'auth-ready' when done.
+// Until then we show nothing on protected pages.
+let authReady = false;
+
+window.addEventListener('auth-ready', async e => {
+  authReady = true;
+  const { currentUser, userSessions, userBikes, userProfile } = await import('./auth.js');
+  // Sync auth data into local state
+  sessions = userSessions.length ? userSessions : sessions;
+  bikes    = userBikes.length    ? userBikes    : bikes;
+  profile  = (userProfile && userProfile.name !== 'Rider') ? userProfile : profile;
+
+  // If we were waiting on a protected page, render it now
+  const active = document.querySelector('.nav-link.active');
+  if (active) goTo(active.dataset.page);
+});
+
+// ── Storage (localStorage fallback when not logged in) ────────────
 const K = {
   sessions:  'tl_sessions',
   bikes:     'tl_bikes',
@@ -14,7 +32,7 @@ let bikes     = load(K.bikes,     []);
 let profile   = load(K.profile,   { name: 'Rider', location: '' });
 let community = load(K.community, seedCommunity());
 let lapTimes  = [];
-let pendingPhotos = []; // { dataURL, name }[]
+let pendingPhotos = [];
 let chart     = null;
 
 function load(key, def) {
@@ -26,7 +44,21 @@ function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 const pages    = document.querySelectorAll('.page');
 const navLinks = document.querySelectorAll('.nav-link');
 
-function goTo(pageId) {
+const PROTECTED_PAGES = ['profile', 'logbook'];
+
+async function goTo(pageId) {
+  // Check auth for protected pages
+  if (PROTECTED_PAGES.includes(pageId)) {
+    const { requireAuth, hideLoginOverlay, currentUser } = await import('./auth.js');
+    if (!requireAuth(pageId)) return; // shows login overlay, stops here
+    hideLoginOverlay();
+    // Sync latest data from auth module
+    const mod = await import('./auth.js');
+    if (mod.userSessions.length) sessions = mod.userSessions;
+    if (mod.userBikes.length)    bikes    = mod.userBikes;
+    if (mod.userProfile)         profile  = mod.userProfile;
+  }
+
   pages.forEach(p => p.classList.toggle('active', p.id === 'page-' + pageId));
   navLinks.forEach(l => l.classList.toggle('active', l.dataset.page === pageId));
   if (pageId === 'home')      renderHome();
@@ -100,10 +132,12 @@ document.getElementById('cancel-profile-btn').addEventListener('click', () => {
   document.getElementById('edit-profile-btn').classList.remove('hidden');
 });
 
-document.getElementById('save-profile-btn').addEventListener('click', () => {
+document.getElementById('save-profile-btn').addEventListener('click', async () => {
   profile.name     = document.getElementById('profile-name-input').value.trim() || 'Rider';
   profile.location = document.getElementById('profile-location-input').value.trim();
   save(K.profile, profile);
+  const { saveProfile } = await import('./auth.js');
+  saveProfile(profile);
   document.getElementById('edit-profile-form').classList.add('hidden');
   document.getElementById('edit-profile-btn').classList.remove('hidden');
   renderProfile();
@@ -271,6 +305,7 @@ document.getElementById('log-form').addEventListener('submit', e => {
   };
   sessions.unshift(session);
   save(K.sessions, sessions);
+  import('./auth.js').then(m => m.saveSession(session));
 
   // reset
   document.getElementById('log-form').reset();
