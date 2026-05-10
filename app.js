@@ -1,5 +1,18 @@
 'use strict';
 
+const BIKE_MAKES = {
+  'Aprilia':   ['RS 660', 'RSV4', 'RSV4 Factory', 'RSV4 1100'],
+  'BMW':       ['S 1000 RR', 'M 1000 RR'],
+  'Ducati':    ['Panigale V2', 'Panigale V4', 'Panigale V4S', 'Panigale V4R'],
+  'Honda':     ['CBR300R', 'CBR500R', 'CBR600RR', 'CBR1000RR-R Fireblade', 'CBR1000RR-R Fireblade SP'],
+  'Kawasaki':  ['Ninja 400', 'Ninja ZX-4RR', 'Ninja ZX-6R', 'Ninja ZX-10R', 'Ninja ZX-10RR'],
+  'KTM':       ['RC 390', 'RC 8C'],
+  'MV Agusta': ['F3 800 RR', 'F4 RR'],
+  'Suzuki':    ['GSX-R600', 'GSX-R750', 'GSX-R1000', 'GSX-R1000R'],
+  'Triumph':   ['Daytona 660', 'Street Triple R', 'Street Triple RS'],
+  'Yamaha':    ['YZF-R3', 'YZF-R7', 'YZF-R1', 'YZF-R1M'],
+};
+
 // ── Auth integration ──────────────────────────────────────────────
 // auth.js (ES module) runs in parallel and fires 'auth-ready' when done.
 // Until then we show nothing on protected pages.
@@ -75,12 +88,30 @@ document.querySelectorAll('[data-page]').forEach(el => {
 
 // ── HOME ─────────────────────────────────────────────────────────
 const NEWS = [
-  { tag:'Track Day', tagColor:'', title:'Utah Motorsports Campus Opens 2026 Season', body:'UMC kicks off its annual track day calendar with WERA and N2 dates through October. Open paddock and garage rentals available for the full season.', date:'May 3, 2026', href:'https://utmotorsports.com' },
-  { tag:'Announcement', tagColor:'blue', title:'N2 Track Days Expands West Coast Schedule', body:'N2 adds new dates at High Plains Raceway and The Ridge Motorsports Park. Intermediate group sessions sell out fast — registration opens May 15.', date:'May 1, 2026', href:'https://n2trackdays.com' },
-  { tag:'Gear', tagColor:'green', title:'Michelin Power Cup 2: Still the Tire to Beat Out West', body:'Riders at Buttonwillow and Chuckwalla continue to report excellent feel and consistent lap times across a full day of sessions on Cup 2s.', date:'Apr 28, 2026', href:'https://www.revzilla.com/motorcycle/michelin-power-cup-2-rear-tire' },
-  { tag:'Event', tagColor:'', title:'Keigwins at the Track Returns to Thunderhill for Summer', body:'Three-day camps and single-day events at Thunderhill Raceway in Willows, CA. Coaching available for all skill levels. Early registration discount ends June 1.', date:'Apr 22, 2026', href:'https://keigwins.com' },
-  { tag:'Track Day', tagColor:'blue', title:'Pacific Track Time Announces New Chuckwalla Dates', body:'PTT adds four dates at Chuckwalla Valley Raceway through summer. Early morning start times scheduled to beat the desert heat. Garages available.', date:'Apr 18, 2026', href:'https://pacifictracktime.com' },
-  { tag:'Safety', tagColor:'green', title:'Updated Run Group Standards for Western Track Day Orgs', body:'New joint guidelines clarify cornering line restrictions and passing zones for novice groups across major western US track day providers for 2026.', date:'Apr 10, 2026', href:'#' },
+  { tag:'MotoGP', tagColor:'red', color:['#cc0000','#7a0000'],
+    title:'Marc Marquez Dominates at Jerez to Extend Championship Lead',
+    body:'The Ducati factory rider claimed a commanding victory at the Gran Premio de España, pulling away from Francesco Bagnaia in the closing stages to open a 19-point gap at the top.',
+    date:'May 5, 2026', href:'https://www.motogp.com/en/news' },
+  { tag:'WorldSBK', tagColor:'blue', color:['#1a3a8f','#0d2260'],
+    title:'Toprak Razgatlioglu Takes Assen Race 1 in Style for BMW',
+    body:'The defending WSBK champion extended his points lead at TT Circuit Assen, delivering a flawless performance on the M 1000 RR ahead of Nicolo Bulega\'s Ducati.',
+    date:'May 3, 2026', href:'https://www.worldsbk.com/en/news' },
+  { tag:'Moto America', tagColor:'green', color:['#1a5c2a','#0d3a1a'],
+    title:'Moto America Superbike Heads to The Ridge Motorsports Park',
+    body:'Round 3 of the 2026 Moto America Superbike Championship visits one of the most technical layouts on the calendar. Championship leader and last year\'s winner are both expected to contend.',
+    date:'Apr 29, 2026', href:'https://motoamerica.com/news/' },
+  { tag:'Track Day', tagColor:'', color:['#111110','#2a2a28'],
+    title:'N2 Track Days Adds Oregon Raceway Park and New HPR Dates',
+    body:'N2 expands its Pacific Northwest and Colorado schedules with additional intermediate and open sessions. Early registration for July events opens May 15 — spots fill fast.',
+    date:'Apr 25, 2026', href:'https://www.n2trackdays.com' },
+  { tag:'WorldSBK', tagColor:'blue', color:['#1a3a8f','#0d2260'],
+    title:'Jonathan Rea Confirms Return to Full WorldSBK Calendar',
+    body:'The six-time world champion confirms he will rejoin the Pata Prometeon Yamaha team from the Misano round following his early-season injury, looking to recapture championship form.',
+    date:'Apr 21, 2026', href:'https://www.worldsbk.com/en/news' },
+  { tag:'Gear', tagColor:'green', color:['#1a8f52','#0d5c35'],
+    title:'Michelin Power Cup 2 EVO: Updated Compound for 2026',
+    body:'Michelin\'s revised track day tire features improved heat cycle resilience and faster warm-up times. Available at RevZilla, Cycle Gear, and major dealers beginning June.',
+    date:'Apr 16, 2026', href:'https://www.revzilla.com/motorcycle/sport-tires' },
 ];
 
 function renderHome() {
@@ -104,6 +135,9 @@ function renderHome() {
   // News
   document.getElementById('news-grid').innerHTML = NEWS.map(n => `
     <a class="news-card" href="${n.href}" target="_blank" rel="noopener">
+      <div class="news-img" style="background:linear-gradient(135deg,${n.color[0]},${n.color[1]})">
+        <span class="news-source">${n.tag}</span>
+      </div>
       <span class="news-tag ${n.tagColor}">${n.tag}</span>
       <div class="news-title">${n.title}</div>
       <div class="news-body">${n.body}</div>
@@ -118,6 +152,22 @@ function renderProfile() {
   document.getElementById('profile-meta-display').textContent = loc;
   document.getElementById('profile-name-input').value     = profile.name || '';
   document.getElementById('profile-location-input').value = profile.location || '';
+  // Profile photo
+  const avatarWrap = document.getElementById('profile-avatar-display');
+  if (avatarWrap) {
+    const existing = avatarWrap.querySelector('img.profile-pic');
+    if (profile.photo) {
+      if (!existing) {
+        const img = document.createElement('img');
+        img.className = 'profile-pic';
+        img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;';
+        avatarWrap.insertBefore(img, avatarWrap.firstChild);
+      }
+      avatarWrap.querySelector('img.profile-pic').src = profile.photo;
+      const svgEl = avatarWrap.querySelector('svg');
+      if (svgEl) svgEl.style.display = 'none';
+    }
+  }
   renderGarage();
   renderPhotoReel();
 }
@@ -130,6 +180,21 @@ document.getElementById('edit-profile-btn').addEventListener('click', () => {
 document.getElementById('cancel-profile-btn').addEventListener('click', () => {
   document.getElementById('edit-profile-form').classList.add('hidden');
   document.getElementById('edit-profile-btn').classList.remove('hidden');
+});
+
+document.getElementById('profile-photo-input').addEventListener('change', async () => {
+  const file = document.getElementById('profile-photo-input').files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    profile.photo = ev.target.result;
+    save(K.profile, profile);
+    const { saveProfile } = await import('./auth.js');
+    saveProfile(profile);
+    renderProfile();
+    toast('Profile photo updated');
+  };
+  reader.readAsDataURL(file);
 });
 
 document.getElementById('save-profile-btn').addEventListener('click', async () => {
@@ -155,18 +220,61 @@ document.getElementById('cancel-bike-btn').addEventListener('click', () => {
   document.getElementById('add-bike-btn').classList.remove('hidden');
 });
 
-document.getElementById('save-bike-btn').addEventListener('click', () => {
-  const year  = document.getElementById('bike-year').value.trim();
-  const make  = document.getElementById('bike-make').value.trim();
-  const model = document.getElementById('bike-model').value.trim();
-  if (!make || !model) { toast('Enter at least make and model'); return; }
-  bikes.push({ id: Date.now(), year, make, model,
+// Populate bike make dropdown
+const bikeMakeEl  = document.getElementById('bike-make');
+const bikeModelEl = document.getElementById('bike-model');
+Object.keys(BIKE_MAKES).forEach(make => {
+  const o = document.createElement('option');
+  o.value = o.textContent = make;
+  bikeMakeEl.appendChild(o);
+});
+bikeMakeEl.addEventListener('change', () => {
+  const models = BIKE_MAKES[bikeMakeEl.value] || [];
+  bikeModelEl.innerHTML = '<option value="">— Select model —</option>';
+  models.forEach(m => {
+    const o = document.createElement('option');
+    o.value = o.textContent = m;
+    bikeModelEl.appendChild(o);
+  });
+  bikeModelEl.disabled = !models.length;
+});
+
+let pendingBikePhoto = null;
+document.getElementById('bike-photo-input').addEventListener('change', () => {
+  const file = document.getElementById('bike-photo-input').files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    pendingBikePhoto = e.target.result;
+    document.getElementById('bike-photo-preview').innerHTML =
+      `<img class="photo-thumb" src="${pendingBikePhoto}" alt="Bike preview">`;
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('save-bike-btn').addEventListener('click', async () => {
+  const make  = document.getElementById('bike-make').value;
+  const model = document.getElementById('bike-model').value;
+  if (!make || !model) { toast('Select make and model'); return; }
+  bikes.push({
+    id:    Date.now(),
+    year:  document.getElementById('bike-year').value.trim(),
+    make,  model,
     color: document.getElementById('bike-color').value.trim(),
-    notes: document.getElementById('bike-notes').value.trim() });
+    notes: document.getElementById('bike-notes').value.trim(),
+    photo: pendingBikePhoto,
+  });
   save(K.bikes, bikes);
   document.getElementById('add-bike-form').classList.add('hidden');
   document.getElementById('add-bike-btn').classList.remove('hidden');
-  ['bike-year','bike-make','bike-model','bike-color','bike-notes'].forEach(id => document.getElementById(id).value = '');
+  ['bike-year','bike-color','bike-notes'].forEach(id => document.getElementById(id).value = '');
+  bikeMakeEl.value = '';
+  bikeModelEl.innerHTML = '<option value="">— Select model —</option>';
+  bikeModelEl.disabled = true;
+  pendingBikePhoto = null;
+  document.getElementById('bike-photo-preview').innerHTML = '';
+  const { saveBikes } = await import('./auth.js');
+  saveBikes(bikes);
   renderGarage();
   refreshBikeSelect();
   toast('Bike added to garage');
@@ -180,6 +288,7 @@ function renderGarage() {
   }
   el.innerHTML = bikes.map(b => `
     <div class="bike-card">
+      ${b.photo ? `<div class="bike-photo"><img src="${b.photo}" alt="${esc(b.make)} ${esc(b.model)}"></div>` : ''}
       <div class="bike-actions">
         <button class="btn-icon del-bike" data-id="${b.id}" title="Remove">✕</button>
       </div>
@@ -190,9 +299,11 @@ function renderGarage() {
     </div>`).join('');
 
   el.querySelectorAll('.del-bike').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       bikes = bikes.filter(b => b.id !== +btn.dataset.id);
       save(K.bikes, bikes);
+      const { saveBikes } = await import('./auth.js');
+      saveBikes(bikes);
       renderGarage();
       refreshBikeSelect();
     });
@@ -217,6 +328,7 @@ function renderLogbook() {
   refreshBikeSelect();
   renderLogTable();
   buildChart();
+  buildTrackChart();
   rebuildChartFilter();
 }
 
@@ -319,6 +431,7 @@ document.getElementById('log-form').addEventListener('submit', e => {
   renderLogTable(true);
   rebuildChartFilter();
   buildChart();
+  buildTrackChart();
 });
 
 document.getElementById('log-reset-btn').addEventListener('click', () => {
@@ -329,19 +442,22 @@ document.getElementById('log-reset-btn').addEventListener('click', () => {
 });
 
 function renderLogTable(animateFirst = false) {
-  const tbody  = document.getElementById('log-tbody');
-  const empty  = document.getElementById('log-empty');
-  const chart  = document.getElementById('chart-card');
+  const tbody      = document.getElementById('log-tbody');
+  const empty      = document.getElementById('log-empty');
+  const chart      = document.getElementById('chart-card');
+  const trackCard  = document.getElementById('chart-track-card');
 
   if (!sessions.length) {
     tbody.innerHTML = '';
     empty.classList.remove('hidden');
     chart.classList.add('hidden');
+    if (trackCard) trackCard.classList.add('hidden');
     return;
   }
 
   empty.classList.add('hidden');
   chart.classList.remove('hidden');
+  if (trackCard) trackCard.classList.remove('hidden');
 
   tbody.innerHTML = sessions.map((s, idx) => {
     const best = bestLap(s.laps);
@@ -432,6 +548,42 @@ function buildChart() {
   });
 }
 
+let trackChart = null;
+
+function buildTrackChart() {
+  const card = document.getElementById('chart-track-card');
+  if (!sessions.length) { card?.classList.add('hidden'); return; }
+  card?.classList.remove('hidden');
+  const counts = {};
+  sessions.forEach(s => { if (s.track) counts[s.track] = (counts[s.track] || 0) + 1; });
+  const labels = Object.keys(counts);
+  const data   = Object.values(counts);
+  const ctx = document.getElementById('track-chart').getContext('2d');
+  if (trackChart) trackChart.destroy();
+  trackChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: 'rgba(232,76,0,.18)',
+        borderColor: '#e84c00',
+        borderWidth: 2,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { grid: { color: '#e8e8e5' }, ticks: { color: '#999', font: { size: 11 }, stepSize: 1 }, beginAtZero: true },
+        x: { grid: { display: false }, ticks: { color: '#999', font: { size: 10 }, maxRotation: 35 } },
+      },
+    },
+  });
+}
+
 // Modal
 function openModal(s) {
   if (!s) return;
@@ -471,6 +623,7 @@ function openModal(s) {
     renderLogTable();
     rebuildChartFilter();
     buildChart();
+    buildTrackChart();
     toast('Session deleted');
   });
 

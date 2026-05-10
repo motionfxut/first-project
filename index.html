@@ -68,9 +68,13 @@
 
         <!-- Profile header -->
         <div class="profile-header card">
-          <div class="profile-avatar" id="profile-avatar-display">
+          <div class="profile-avatar-wrap" id="profile-avatar-display">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            <label class="profile-photo-overlay" for="profile-photo-input" title="Change photo">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </label>
           </div>
+          <input type="file" id="profile-photo-input" accept="image/*" class="hidden">
           <div class="profile-info">
             <div class="profile-name" id="profile-name-display">Rider</div>
             <div class="profile-meta" id="profile-meta-display">Add your name to get started</div>
@@ -115,11 +119,15 @@
             </div>
             <div class="form-group">
               <label>Make</label>
-              <input type="text" id="bike-make" placeholder="Yamaha">
+              <select id="bike-make">
+                <option value="">— Select make —</option>
+              </select>
             </div>
             <div class="form-group">
               <label>Model</label>
-              <input type="text" id="bike-model" placeholder="YZF-R6">
+              <select id="bike-model" disabled>
+                <option value="">— Select model —</option>
+              </select>
             </div>
           </div>
           <div class="form-grid-2">
@@ -131,6 +139,11 @@
               <label>Notes</label>
               <input type="text" id="bike-notes" placeholder="Stock suspension, Akrapovic exhaust...">
             </div>
+          </div>
+          <div class="form-group">
+            <label>Bike Photo <span class="label-hint">— optional</span></label>
+            <input type="file" id="bike-photo-input" accept="image/*" class="file-input">
+            <div class="photo-preview" id="bike-photo-preview"></div>
           </div>
           <div class="form-actions">
             <button class="btn-ghost" id="cancel-bike-btn">Cancel</button>
@@ -160,123 +173,136 @@
     <div class="page" id="page-logbook">
       <div class="content-wrap">
 
-        <!-- Log form -->
-        <div class="card" id="log-form-card">
-          <div class="card-title">New Session</div>
-          <form id="log-form">
-
-            <div class="form-grid-3">
-              <div class="form-group">
-                <label>Date</label>
-                <input type="date" id="log-date" required>
-              </div>
-              <div class="form-group">
-                <label>Track</label>
-                <input type="text" id="log-track" placeholder="Utah Motorsports Campus" required>
-              </div>
-              <div class="form-group">
-                <label>Bike</label>
-                <select id="log-bike">
-                  <option value="">— Select bike —</option>
-                </select>
-              </div>
+        <!-- Charts row -->
+        <div class="logbook-charts" id="logbook-charts">
+          <div class="card" id="chart-card">
+            <div class="chart-hd">
+              <span class="card-title" style="margin-bottom:0">Lap Time Progression</span>
+              <select id="chart-filter" class="select-sm"></select>
             </div>
-
-            <div class="form-grid-4">
-              <div class="form-group">
-                <label>Front PSI</label>
-                <input type="number" id="log-front-psi" placeholder="32" min="20" max="50" step="0.5">
-              </div>
-              <div class="form-group">
-                <label>Rear PSI</label>
-                <input type="number" id="log-rear-psi" placeholder="20" min="15" max="50" step="0.5">
-              </div>
-              <div class="form-group">
-                <label>Weather</label>
-                <select id="log-weather">
-                  <option value="Sunny">Sunny</option>
-                  <option value="Cloudy">Cloudy</option>
-                  <option value="Damp">Damp</option>
-                  <option value="Wet">Wet</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Temp (°F)</label>
-                <input type="number" id="log-temp" placeholder="75" min="-10" max="120">
-              </div>
+            <div class="chart-wrap"><canvas id="lap-chart"></canvas></div>
+          </div>
+          <div class="card" id="chart-track-card">
+            <div class="chart-hd">
+              <span class="card-title" style="margin-bottom:0">Sessions by Track</span>
             </div>
-
-            <div class="form-group">
-              <label>Lap Times <span class="label-hint">— press Enter or + to add each time</span></label>
-              <div class="lap-row">
-                <input type="text" id="log-lap-input" placeholder="1:32.456">
-                <button type="button" class="btn-add-lap" id="add-lap-btn">+</button>
-              </div>
-              <div class="chip-list" id="lap-chip-list"></div>
-            </div>
-
-            <div class="form-grid-2">
-              <div class="form-group">
-                <label>What went well</label>
-                <textarea id="log-well" rows="3" placeholder="Smooth exits on T3, consistent braking..."></textarea>
-              </div>
-              <div class="form-group">
-                <label>What to improve</label>
-                <textarea id="log-improve" rows="3" placeholder="Trail braking into T1, body position..."></textarea>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>Notes</label>
-              <textarea id="log-notes" rows="2" placeholder="Tire warmers on/off, suspension changes, anything else..."></textarea>
-            </div>
-
-            <div class="form-group">
-              <label>Photos <span class="label-hint">— select multiple</span></label>
-              <input type="file" id="log-photos" accept="image/*" multiple class="file-input">
-              <div class="photo-preview" id="log-photo-preview"></div>
-            </div>
-
-            <div class="form-actions">
-              <button type="reset" class="btn-ghost" id="log-reset-btn">Clear</button>
-              <button type="submit" class="btn-primary">Save Session →</button>
-            </div>
-
-          </form>
+            <div class="chart-wrap"><canvas id="track-chart"></canvas></div>
+          </div>
         </div>
 
-        <!-- Chart -->
-        <div class="card" id="chart-card">
-          <div class="chart-hd">
-            <span class="card-title" style="margin-bottom:0">Lap Time Progression</span>
-            <select id="chart-filter" class="select-sm"></select>
-          </div>
-          <div class="chart-wrap"><canvas id="lap-chart"></canvas></div>
-        </div>
+        <!-- Split: form left, table right -->
+        <div class="logbook-split">
+          <div class="logbook-form-col">
+            <div class="card" id="log-form-card">
+              <div class="card-title">New Session</div>
+              <form id="log-form">
 
-        <!-- Table -->
-        <div class="card table-card">
-          <div class="card-title">Session Log</div>
-          <div class="table-scroll">
-            <table class="data-table" id="log-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Track</th>
-                  <th>Bike</th>
-                  <th>F PSI</th>
-                  <th>R PSI</th>
-                  <th>Weather</th>
-                  <th>Temp</th>
-                  <th>Best Lap</th>
-                  <th>Laps</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="log-tbody"></tbody>
-            </table>
+                <div class="form-grid-3">
+                  <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="log-date" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Track</label>
+                    <input type="text" id="log-track" placeholder="Utah Motorsports Campus" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Bike</label>
+                    <select id="log-bike">
+                      <option value="">— Select bike —</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-grid-4">
+                  <div class="form-group">
+                    <label>Front PSI</label>
+                    <input type="number" id="log-front-psi" placeholder="32" min="20" max="50" step="0.5">
+                  </div>
+                  <div class="form-group">
+                    <label>Rear PSI</label>
+                    <input type="number" id="log-rear-psi" placeholder="20" min="15" max="50" step="0.5">
+                  </div>
+                  <div class="form-group">
+                    <label>Weather</label>
+                    <select id="log-weather">
+                      <option value="Sunny">Sunny</option>
+                      <option value="Cloudy">Cloudy</option>
+                      <option value="Damp">Damp</option>
+                      <option value="Wet">Wet</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Temp (°F)</label>
+                    <input type="number" id="log-temp" placeholder="75" min="-10" max="120">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Lap Times <span class="label-hint">— press Enter or + to add each time</span></label>
+                  <div class="lap-row">
+                    <input type="text" id="log-lap-input" placeholder="1:32.456">
+                    <button type="button" class="btn-add-lap" id="add-lap-btn">+</button>
+                  </div>
+                  <div class="chip-list" id="lap-chip-list"></div>
+                </div>
+
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label>What went well</label>
+                    <textarea id="log-well" rows="3" placeholder="Smooth exits on T3, consistent braking..."></textarea>
+                  </div>
+                  <div class="form-group">
+                    <label>What to improve</label>
+                    <textarea id="log-improve" rows="3" placeholder="Trail braking into T1, body position..."></textarea>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Notes</label>
+                  <textarea id="log-notes" rows="2" placeholder="Tire warmers on/off, suspension changes, anything else..."></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label>Photos <span class="label-hint">— select multiple</span></label>
+                  <input type="file" id="log-photos" accept="image/*" multiple class="file-input">
+                  <div class="photo-preview" id="log-photo-preview"></div>
+                </div>
+
+                <div class="form-actions">
+                  <button type="reset" class="btn-ghost" id="log-reset-btn">Clear</button>
+                  <button type="submit" class="btn-primary">Save Session →</button>
+                </div>
+
+              </form>
+            </div>
           </div>
-          <div class="empty-state" id="log-empty">No sessions yet — log your first track day above.</div>
+
+          <div class="logbook-table-col">
+            <div class="card table-card">
+              <div class="card-title">Session Log</div>
+              <div class="table-scroll">
+                <table class="data-table" id="log-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Track</th>
+                      <th>Bike</th>
+                      <th>F PSI</th>
+                      <th>R PSI</th>
+                      <th>Weather</th>
+                      <th>Temp</th>
+                      <th>Best Lap</th>
+                      <th>Laps</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="log-tbody"></tbody>
+                </table>
+              </div>
+              <div class="empty-state" id="log-empty">No sessions yet — log your first track day above.</div>
+            </div>
+          </div>
         </div>
 
       </div>

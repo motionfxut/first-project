@@ -1260,3 +1260,112 @@ textarea { resize: vertical; min-height: 72px; }
 @media (max-width: 480px) {
   .nav-links .nav-link { padding: 6px 9px; font-size: .78rem; }
 }
+
+/* ── LOGBOOK LAYOUT ──────────────────────────────────────────── */
+.logbook-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.logbook-split {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.logbook-table-col .table-card {
+  position: sticky;
+  top: 76px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+
+/* ── NEWS CARD IMAGE ─────────────────────────────────────────── */
+.news-img {
+  height: 90px;
+  border-radius: var(--r-sm);
+  margin: -4px -4px 8px;
+  display: flex;
+  align-items: flex-end;
+  padding: 10px 12px;
+  overflow: hidden;
+}
+
+.news-source {
+  font-size: .65rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.85);
+  background: rgba(0,0,0,.25);
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+/* ── PROFILE PHOTO ───────────────────────────────────────────── */
+.profile-avatar-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+}
+
+.profile-avatar-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-photo-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.profile-avatar-wrap:hover .profile-photo-overlay { background: rgba(0,0,0,.45); }
+.profile-photo-overlay svg { opacity: 0; transition: opacity .15s; }
+.profile-avatar-wrap:hover .profile-photo-overlay svg { opacity: 1; }
+
+/* ── BIKE PHOTO ──────────────────────────────────────────────── */
+.bike-photo {
+  width: 100%;
+  height: 140px;
+  margin: -18px -18px 14px;
+  width: calc(100% + 36px);
+  overflow: hidden;
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.bike-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── RESPONSIVE (additions) ──────────────────────────────────── */
+@media (max-width: 1000px) {
+  .logbook-split { grid-template-columns: 1fr; }
+  .logbook-table-col .table-card { position: static; max-height: none; }
+}
+
+@media (max-width: 700px) {
+  .logbook-charts { grid-template-columns: 1fr; }
+}
