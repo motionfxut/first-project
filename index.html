@@ -197,19 +197,29 @@
               <div class="card-title">New Session</div>
               <form id="log-form">
 
-                <div class="form-grid-3">
+                <div class="form-grid-2">
                   <div class="form-group">
                     <label>Date</label>
                     <input type="date" id="log-date" required>
                   </div>
                   <div class="form-group">
-                    <label>Track</label>
-                    <input type="text" id="log-track" placeholder="Utah Motorsports Campus" required>
-                  </div>
-                  <div class="form-group">
                     <label>Bike</label>
                     <select id="log-bike">
                       <option value="">— Select bike —</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label>Track</label>
+                    <input type="text" id="log-track" placeholder="Utah Motorsports Campus" list="track-datalist" autocomplete="off" required>
+                    <datalist id="track-datalist"></datalist>
+                  </div>
+                  <div class="form-group">
+                    <label>Config / Layout</label>
+                    <select id="log-config">
+                      <option value="">— General —</option>
                     </select>
                   </div>
                 </div>

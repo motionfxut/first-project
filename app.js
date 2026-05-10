@@ -1,5 +1,32 @@
 'use strict';
 
+const TRACK_CONFIGS = {
+  'Utah Motorsports Campus':      ['East', 'West', 'Perimeter'],
+  'Chuckwalla Valley Raceway':    ['Full Circuit', 'Infield Club'],
+  'The Ridge Motorsports Park':   ['Full Circuit'],
+  'High Plains Raceway':          ['Full', 'Short Course'],
+  'Thunderhill Raceway':          ['3-Mile East', '2-Mile West', '5-Mile Full'],
+  'Oregon Raceway Park':          ['Full Circuit', 'Short Course'],
+  'Buttonwillow Raceway Park':    ['Config 13CW', 'Config 13CCW', 'Config 7', 'Roval'],
+  'Willow Springs':               ['Big Willow', 'Streets of Willow', 'Horse Thief Mile'],
+  'Laguna Seca':                  ['Full Circuit'],
+  'Sonoma Raceway':               ['Full Circuit', 'Club Course'],
+  'Barber Motorsports Park':      ['Full Circuit'],
+  'Road America':                 ['Full Circuit'],
+  'New Jersey Motorsports Park':  ['Thunderbolt', 'Lightning', 'Combined'],
+  'Pittsburgh International Race Complex': ['South Circuit', 'Full Circuit'],
+  'Circuit of the Americas':      ['Full Circuit', 'Short Circuit'],
+  'Road Atlanta':                 ['Full Circuit'],
+  'Virginia International Raceway': ['Full', 'North', 'South', 'Patriot'],
+  'Watkins Glen':                 ['Full Circuit', 'Boot'],
+  'Autobahn Country Club':        ['North', 'South', 'Full'],
+  'Gingerman Raceway':            ['Full Circuit'],
+  'Grattan Raceway':              ['Full Circuit'],
+  'NCM Motorsports Park':         ['Full Circuit'],
+  'Pacific Raceways':             ['Full Circuit'],
+  'Spokane County Raceway':       ['Full Circuit'],
+};
+
 const BIKE_MAKES = {
   'Aprilia':   ['RS 660', 'RSV4', 'RSV4 Factory', 'RSV4 1100'],
   'BMW':       ['S 1000 RR', 'M 1000 RR'],
@@ -343,6 +370,35 @@ function refreshBikeSelect() {
 // Set default date
 document.getElementById('log-date').value = todayStr();
 
+// Populate track datalist
+const trackDatalist = document.getElementById('track-datalist');
+Object.keys(TRACK_CONFIGS).forEach(t => {
+  const opt = document.createElement('option');
+  opt.value = t;
+  trackDatalist.appendChild(opt);
+});
+
+// Track → Config dropdown
+const logTrackEl  = document.getElementById('log-track');
+const logConfigEl = document.getElementById('log-config');
+
+function updateConfigOptions() {
+  const track   = logTrackEl.value.trim();
+  const configs = TRACK_CONFIGS[track] || [];
+  const prev    = logConfigEl.value;
+  logConfigEl.innerHTML = '<option value="">— General —</option>';
+  configs.forEach(c => {
+    const o = document.createElement('option');
+    o.value = o.textContent = c;
+    logConfigEl.appendChild(o);
+  });
+  if (configs.includes(prev)) logConfigEl.value = prev;
+  logConfigEl.disabled = configs.length === 0;
+}
+
+logTrackEl.addEventListener('change', updateConfigOptions);
+logTrackEl.addEventListener('blur',   updateConfigOptions);
+
 // Lap chips
 const lapInput    = document.getElementById('log-lap-input');
 const lapChipList = document.getElementById('lap-chip-list');
@@ -403,6 +459,7 @@ document.getElementById('log-form').addEventListener('submit', e => {
     id:       Date.now(),
     date:     document.getElementById('log-date').value,
     track:    document.getElementById('log-track').value.trim(),
+    config:   document.getElementById('log-config').value || '',
     bikeId:   bikeId || null,
     bikeName: bike ? `${bike.year ? bike.year + ' ' : ''}${bike.make} ${bike.model}` : document.getElementById('log-bike').value,
     frontPsi: document.getElementById('log-front-psi').value,
@@ -422,6 +479,8 @@ document.getElementById('log-form').addEventListener('submit', e => {
   // reset
   document.getElementById('log-form').reset();
   document.getElementById('log-date').value = todayStr();
+  logConfigEl.innerHTML = '<option value="">— General —</option>';
+  logConfigEl.disabled = true;
   lapTimes = [];
   pendingPhotos = [];
   renderChips();
@@ -463,7 +522,7 @@ function renderLogTable(animateFirst = false) {
     const best = bestLap(s.laps);
     return `<tr data-id="${s.id}"${idx === 0 && animateFirst ? ' class="new-row"' : ''}>
       <td>${fmtDate(s.date)}</td>
-      <td class="cell-track">${esc(s.track) || '—'}</td>
+      <td class="cell-track">${esc(s.track) || '—'}${s.config ? `<span class="cell-config"> · ${esc(s.config)}</span>` : ''}</td>
       <td>${esc(s.bikeName) || '—'}</td>
       <td>${s.frontPsi ? s.frontPsi + ' psi' : '—'}</td>
       <td>${s.rearPsi  ? s.rearPsi  + ' psi' : '—'}</td>
@@ -605,7 +664,7 @@ function openModal(s) {
     ? `<div class="modal-section"><div class="modal-label">Photos</div><div class="modal-photos">${s.photos.map(p => `<img src="${p}" loading="lazy">`).join('')}</div></div>` : '';
 
   document.getElementById('modal-body').innerHTML = `
-    <div class="modal-track">${esc(s.track) || '—'}</div>
+    <div class="modal-track">${esc(s.track) || '—'}${s.config ? `<span class="modal-config"> · ${esc(s.config)}</span>` : ''}</div>
     <div class="modal-sub">${fmtDate(s.date)}${meta ? ' · ' + esc(meta) : ''}</div>
     ${lapsHTML}
     ${textBlock('What went well', s.wentWell)}

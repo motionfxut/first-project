@@ -657,6 +657,7 @@ textarea { resize: vertical; min-height: 72px; }
 .data-table tbody tr.new-row td { animation: rowIn .45s cubic-bezier(.22,1,.36,1) forwards; }
 
 .cell-track { font-weight: 700; }
+.cell-config { font-weight: 400; color: var(--text-3); font-size: .8em; }
 .cell-best  { font-weight: 700; color: var(--green); font-variant-numeric: tabular-nums; }
 .cell-count {
   display: inline-flex;
@@ -1056,6 +1057,7 @@ textarea { resize: vertical; min-height: 72px; }
 .modal-close:hover { color: var(--text); }
 
 .modal-track { font-size: 1.4rem; font-weight: 800; letter-spacing: -.025em; margin-bottom: 3px; }
+.modal-config { font-size: 1rem; font-weight: 500; color: var(--text-3); }
 .modal-sub   { font-size: .8rem; color: var(--text-3); margin-bottom: 20px; }
 
 .modal-section { margin-bottom: 16px; }
