@@ -146,47 +146,49 @@ const NEWS_PINNED = [
     href:'https://www.motogp.com/en/news/2026/05/09/martin-sprints-to-saturday-gold-as-marc-marquez-suffers-dnf-in-le-mans/1064615' },
 ];
 
-const RSS2JSON  = 'https://api.rss2json.com/v1/api.json';
-const NEWS_KEY  = 'tl_news_cache';
-const NEWS_TTL  = 48 * 60 * 60 * 1000; // 48 hours
+const CORS_PROXY = 'https://api.allorigins.win/get?url=';
+const NEWS_KEY   = 'tl_news_v2';          // v2 busts any stale cache
+const NEWS_TTL   = 48 * 60 * 60 * 1000;  // 48 hours
+const MEDIA_NS   = 'http://search.yahoo.com/mrss/';
 
 function stripHtml(html) {
   return (html || '')
     .replace(/<[^>]*>/g, ' ')
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&#?\w+;/g, '')
-    .replace(/\s+/g, ' ').trim();
+    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').replace(/&#?\w+;/g,'')
+    .replace(/\s+/g,' ').trim();
+}
+
+async function fetchFeed(src) {
+  const res  = await fetch(CORS_PROXY + encodeURIComponent(src.rss));
+  const json = await res.json();
+  const xml  = new DOMParser().parseFromString(json.contents, 'text/xml');
+  return [...xml.querySelectorAll('item')].slice(0, src.count).map(item => {
+    const get  = tag => item.querySelector(tag)?.textContent?.trim() || '';
+    const enc  = item.querySelector('enclosure[type^="image"]');
+    const mc   = item.getElementsByTagNameNS(MEDIA_NS, 'content')[0];
+    const mt   = item.getElementsByTagNameNS(MEDIA_NS, 'thumbnail')[0];
+    const img  = enc?.getAttribute('url') || mc?.getAttribute('url') || mt?.getAttribute('url') || null;
+    const pub  = get('pubDate');
+    const ts   = pub ? new Date(pub).getTime() : 0;
+    return {
+      tag: src.tag, tagColor: src.tagColor, color: src.color, img,
+      title: get('title'),
+      body:  stripHtml(get('description')).slice(0, 180).replace(/\s+\S*$/, '') + '…',
+      date:  ts ? fmtDate(new Date(ts).toISOString().slice(0, 10)) : '',
+      ts, href: get('link'),
+    };
+  });
 }
 
 async function fetchNews() {
-  // Return cache if fresh
   try {
     const c = JSON.parse(localStorage.getItem(NEWS_KEY) || 'null');
     if (c && Date.now() - c.ts < NEWS_TTL) return c.items;
   } catch {}
 
-  // Fetch all feeds in parallel, ignore failures
-  const results = await Promise.allSettled(
-    NEWS_SOURCES.map(src =>
-      fetch(`${RSS2JSON}?rss_url=${encodeURIComponent(src.rss)}&count=${src.count}`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.status !== 'ok') return [];
-          return data.items.map(item => {
-            const raw  = item.pubDate || '';
-            const ts   = raw ? new Date(raw.replace(' ', 'T')).getTime() : 0;
-            const date = raw ? fmtDate(raw.slice(0, 10)) : '';
-            const body = stripHtml(item.description).slice(0, 180).replace(/\s+\S*$/, '') + '…';
-            return { tag: src.tag, tagColor: src.tagColor, color: src.color,
-                     img: item.thumbnail || null, title: item.title,
-                     body, date, ts, href: item.link };
-          });
-        })
-        .catch(() => [])
-    )
-  );
-
-  const live = results.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
-  const all  = [...NEWS_PINNED, ...live]
+  const results = await Promise.allSettled(NEWS_SOURCES.map(src => fetchFeed(src)));
+  const live    = results.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
+  const all     = [...NEWS_PINNED, ...live]
     .sort((a, b) => (b.ts || 0) - (a.ts || 0))
     .slice(0, 6);
 
