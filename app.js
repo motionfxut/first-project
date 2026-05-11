@@ -47,13 +47,29 @@ let authReady = false;
 
 window.addEventListener('auth-ready', async e => {
   authReady = true;
-  const { currentUser, userSessions, userBikes, userProfile } = await import('./auth.js');
-  // Sync auth data into local state
-  sessions = userSessions.length ? userSessions : sessions;
-  bikes    = userBikes.length    ? userBikes    : bikes;
-  profile  = (userProfile && userProfile.name !== 'Rider') ? userProfile : profile;
+  const mod = await import('./auth.js');
 
-  // If we were waiting on a protected page, render it now
+  // Merge Firestore sessions into localStorage — never replace, only add what's missing
+  if (mod.userSessions.length) {
+    const localIds = new Set(sessions.map(s => String(s.id)));
+    const toAdd    = mod.userSessions.filter(s => !localIds.has(String(s.id)));
+    if (toAdd.length || !sessions.length) {
+      sessions = [...sessions, ...toAdd]
+        .sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0) || b.id - a.id);
+      save(K.sessions, sessions);
+    }
+  }
+
+  if (!bikes.length && mod.userBikes.length) {
+    bikes = [...mod.userBikes];
+    save(K.bikes, bikes);
+  }
+
+  if (profile.name === 'Rider' && mod.userProfile && mod.userProfile.name !== 'Rider') {
+    profile = { ...mod.userProfile };
+    save(K.profile, profile);
+  }
+
   const active = document.querySelector('.nav-link.active');
   if (active) goTo(active.dataset.page);
 });
@@ -87,16 +103,10 @@ const navLinks = document.querySelectorAll('.nav-link');
 const PROTECTED_PAGES = ['profile', 'logbook'];
 
 async function goTo(pageId) {
-  // Check auth for protected pages
   if (PROTECTED_PAGES.includes(pageId)) {
-    const { requireAuth, hideLoginOverlay, currentUser } = await import('./auth.js');
-    if (!requireAuth(pageId)) return; // shows login overlay, stops here
+    const { requireAuth, hideLoginOverlay } = await import('./auth.js');
+    if (!requireAuth(pageId)) return;
     hideLoginOverlay();
-    // Sync latest data from auth module
-    const mod = await import('./auth.js');
-    if (mod.userSessions.length) sessions = mod.userSessions;
-    if (mod.userBikes.length)    bikes    = mod.userBikes;
-    if (mod.userProfile)         profile  = mod.userProfile;
   }
 
   pages.forEach(p => p.classList.toggle('active', p.id === 'page-' + pageId));
@@ -356,7 +366,6 @@ function renderLogbook() {
   renderLogTable();
   buildChart();
   buildTrackChart();
-  rebuildChartFilter();
 }
 
 function refreshBikeSelect() {
@@ -488,9 +497,12 @@ document.getElementById('log-form').addEventListener('submit', e => {
 
   toast('Session saved ✓');
   renderLogTable(true);
-  rebuildChartFilter();
   buildChart();
   buildTrackChart();
+
+  // Scroll the table column to top so the new row is visible
+  const tableScroll = document.querySelector('.logbook-table-col .table-scroll');
+  if (tableScroll) tableScroll.scrollTop = 0;
 });
 
 document.getElementById('log-reset-btn').addEventListener('click', () => {
@@ -551,18 +563,8 @@ function renderLogTable(animateFirst = false) {
   }
 }
 
-// Chart
-function rebuildChartFilter() {
-  const sel    = document.getElementById('chart-filter');
-  const tracks = [...new Set(sessions.map(s => s.track).filter(Boolean))];
-  sel.innerHTML = '<option value="">All Tracks</option>' +
-    tracks.map(t => `<option>${esc(t)}</option>`).join('');
-  sel.onchange = buildChart;
-}
-
 function buildChart() {
-  const track    = document.getElementById('chart-filter').value;
-  const filtered = (track ? sessions.filter(s => s.track === track) : sessions)
+  const filtered = sessions
     .filter(s => bestLap(s.laps))
     .map(s => ({ date: s.date, val: parseLapSec(bestLap(s.laps)) }))
     .reverse();
@@ -680,7 +682,6 @@ function openModal(s) {
     save(K.sessions, sessions);
     closeModal();
     renderLogTable();
-    rebuildChartFilter();
     buildChart();
     buildTrackChart();
     toast('Session deleted');
@@ -877,7 +878,7 @@ function toast(msg) {
   el.textContent = msg;
   el.classList.add('show');
   clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove('show'), 2400);
+  el._t = setTimeout(() => el.classList.remove('show'), 3500);
 }
 
 // ── INIT ──────────────────────────────────────────────────────────

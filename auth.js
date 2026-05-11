@@ -29,14 +29,17 @@ onAuthStateChanged(auth, async user => {
 });
 
 // ── Sign in / out ────────────────────────────────────────────────
-document.getElementById('google-signin-btn').addEventListener('click', async () => {
+async function triggerSignIn() {
   try {
     await signInWithPopup(auth, provider);
   } catch (err) {
     console.error('Sign-in error:', err);
     showToast('Sign-in failed — please try again');
   }
-});
+}
+
+document.getElementById('google-signin-btn').addEventListener('click', triggerSignIn);
+document.getElementById('nav-sign-in-btn').addEventListener('click', triggerSignIn);
 
 document.getElementById('signout-btn').addEventListener('click', async () => {
   await signOut(auth);
@@ -75,11 +78,13 @@ function showUserMenu(user) {
   avatar.alt = user.displayName || 'User';
   document.getElementById('user-name-display').textContent  = user.displayName || '';
   document.getElementById('user-email-display').textContent = user.email || '';
+  document.getElementById('nav-sign-in-btn').classList.add('hidden');
   hideLoginOverlay();
 }
 
 function hideUserMenu() {
   document.getElementById('user-menu').classList.add('hidden');
+  document.getElementById('nav-sign-in-btn').classList.remove('hidden');
 }
 
 function resetUserData() {
@@ -101,6 +106,17 @@ async function loadUserData(uid) {
     const sessQ    = query(collection(db, 'users', uid, 'sessions'), orderBy('date', 'desc'));
     const sessSnap = await getDocs(sessQ);
     userSessions = sessSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // If Firestore has no sessions but localStorage does, migrate them up
+    if (userSessions.length === 0) {
+      const local = JSON.parse(localStorage.getItem('tl_sessions') || '[]');
+      if (local.length > 0) {
+        userSessions = local;
+        await Promise.all(
+          local.map(s => setDoc(doc(db, 'users', uid, 'sessions', String(s.id)), s))
+        );
+      }
+    }
   } catch (err) {
     console.warn('Firestore load failed, using localStorage:', err.message);
     userProfile  = JSON.parse(localStorage.getItem('tl_profile')  || '{"name":"Rider","location":""}');
@@ -127,7 +143,6 @@ export async function saveBikes(bikes) {
 }
 
 export async function saveSession(session) {
-  userSessions.unshift(session);
   if (!currentUser) return;
   try {
     await setDoc(doc(db, 'users', currentUser.uid, 'sessions', String(session.id)), session);

@@ -109,6 +109,23 @@ body {
 
 .nav-cta:hover { background: var(--accent-dark); }
 
+.nav-sign-in {
+  flex-shrink: 0;
+  margin-left: 8px;
+  background: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-2);
+  font-family: inherit;
+  font-size: .82rem;
+  font-weight: 600;
+  padding: 7px 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color .13s, color .13s;
+}
+.nav-sign-in:hover { border-color: var(--accent); color: var(--accent); }
+
 /* ── PAGES ───────────────────────────────────────────────────── */
 .page { display: none; min-height: calc(100vh - var(--nav-h)); }
 .page.active { display: block; }
@@ -1099,7 +1116,7 @@ textarea { resize: vertical; min-height: 72px; }
   opacity: 0;
   pointer-events: none;
   transition: opacity .2s, transform .2s;
-  z-index: 400;
+  z-index: 600;
   white-space: nowrap;
 }
 
