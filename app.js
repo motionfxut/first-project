@@ -148,7 +148,7 @@ const NEWS_PINNED = [
 
 const RSS2JSON  = 'https://api.rss2json.com/v1/api.json';
 const NEWS_KEY  = 'tl_news_cache';
-const NEWS_TTL  = 30 * 60 * 1000; // 30 min
+const NEWS_TTL  = 48 * 60 * 60 * 1000; // 48 hours
 
 function stripHtml(html) {
   return (html || '')
