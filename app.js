@@ -495,14 +495,15 @@ document.getElementById('log-form').addEventListener('submit', e => {
   renderChips();
   photoPreview.innerHTML = '';
 
-  toast('Session saved ✓');
   renderLogTable(true);
   buildChart();
   buildTrackChart();
 
-  // Scroll the table column to top so the new row is visible
-  const tableScroll = document.querySelector('.logbook-table-col .table-scroll');
-  if (tableScroll) tableScroll.scrollTop = 0;
+  // Scroll the table card (the actual overflow-y container) to top so new row is visible
+  const tableCard = document.querySelector('.logbook-table-col .table-card');
+  if (tableCard) tableCard.scrollTop = 0;
+
+  toast('Session saved ✓');
 });
 
 document.getElementById('log-reset-btn').addEventListener('click', () => {
@@ -557,10 +558,6 @@ function renderLogTable(animateFirst = false) {
     btn.addEventListener('click', () => openModal(sessions.find(s => s.id === +btn.dataset.id)));
   });
 
-  if (animateFirst) {
-    const first = tbody.querySelector('tr');
-    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
 }
 
 function buildChart() {
