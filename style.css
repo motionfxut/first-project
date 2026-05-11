@@ -370,6 +370,12 @@ body {
   margin-top: 4px;
 }
 
+.news-card.loading .news-img  { animation: shimmer 1.4s infinite; }
+@keyframes shimmer {
+  0%,100% { opacity: .7; }
+  50%      { opacity: .4; }
+}
+
 /* ── FORMS ───────────────────────────────────────────────────── */
 .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
 .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }

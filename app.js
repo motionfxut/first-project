@@ -124,52 +124,98 @@ document.querySelectorAll('[data-page]').forEach(el => {
 });
 
 // ── HOME ─────────────────────────────────────────────────────────
-const NEWS = [
-  { tag:'MotoGP', tagColor:'red', color:['#8a0000','#3a0000'],
-    img: null,
-    title:'Comeback King Martin Produces Sunday Magic to Beat Bezzecchi in France',
-    body:'Jorge Martin charged from P8 to P1 in the opening corners at Le Mans to claim his first win in 588 days, with Ai Ogura completing the podium as the first Japanese MotoGP finisher in 14 years.',
-    date:'May 10, 2026',
-    href:'https://www.motogp.com/en/news/2026/05/10/comeback-king-martin-produces-sunday-magic-to-beat-bezzecchi-in-france/1064616' },
-  { tag:'MotoGP', tagColor:'red', color:['#8a0000','#3a0000'],
-    img: null,
-    title:'Martin Sprints to Saturday Gold as Marc Marquez Suffers DNF in Le Mans',
-    body:'Jorge Martin took Sprint victory at Le Mans while championship leader Marco Bezzecchi finished third. Marc Marquez crashed out in the closing stages, handing rivals crucial points.',
-    date:'May 9, 2026',
-    href:'https://www.motogp.com/en/news/2026/05/09/martin-sprints-to-saturday-gold-as-marc-marquez-suffers-dnf-in-le-mans/1064615' },
-  { tag:'WorldSBK', tagColor:'blue', color:['#1a3a8f','#0d2260'],
-    img: 'https://photos.worldsbk.com/2026/05/02/bulega-14-wins_full.jpg',
-    title:'14 Consecutive Wins for Bulega: Ducati Rider Breaks All-Time Record at Balaton Park',
-    body:'Nicolò Bulega surpassed Toprak Razgatlioglu\'s record of 13 straight wins, extending his dominant streak dating back to October 2025 with a commanding Race 1 victory in Hungary.',
-    date:'May 2, 2026',
-    href:'https://www.worldsbk.com/en/news/2026/14+CONSECUTIVE+WINS+FOR+BULEGA+Its+a+dreamIm+really+happy+to+achieve+this+with+this+team' },
-  { tag:'WorldSBK', tagColor:'blue', color:['#1a3a8f','#0d2260'],
-    img: 'https://photos.worldsbk.com/2026/05/03/wsbk-race2-report_full.jpg',
-    title:'Best Ever Start: Bulega Wraps Up Balaton Park Hat-Trick Ahead of Lecuona',
-    body:'Bulega extended his streak to 16 consecutive wins — the first rider ever to win the first 12 races of a season — beating teammate Iker Lecuona by 2.5 seconds in Race 2 at Balaton Park.',
-    date:'May 3, 2026',
-    href:'https://www.worldsbk.com/en/news/2026/BEST+EVER+START+Bulega+makes+more+history+as+he+wraps+up+Balaton+Park+hattrick+ahead+of+Lecuona' },
-  { tag:'MotoAmerica', tagColor:'green', color:['#1a5c2a','#0d3a1a'],
-    img: 'https://www.motoamerica.com/wp-content/uploads/2026/05/BJND6796_P-scaled.jpg',
-    title:'May Day! The Balance of Power Within the Mission King of the Baggers Championship',
-    body:'MotoAmerica raised the Harley-Davidson rev limit from 7,000 to 7,200 rpm in a bid to close the gap to Indian Challenger\'s 7,700 rpm ceiling, ahead of the Road America round May 29–31.',
-    date:'May 1, 2026',
-    href:'https://www.motoamerica.com/may-day-may-day-the-balance-of-power-within-the-mission-king-of-the-baggers-championship/' },
-  { tag:'Gear', tagColor:'green', color:['#1a6640','#0d3a20'],
-    img: 'https://www.revzilla.com/blog_content_image/image/103236/redline_hero/title-image.jpg',
-    title:'May Custom Roundup: Three Customs Built for Dirt, Asphalt, and Ice',
-    body:'RevZilla\'s Common Tread highlights a Super Hooligan CFMOTO flat tracker, Auto Fabrica\'s minimalist CB750 Type 26, and a studded Yamaha XSR900 purpose-built for ice racing.',
-    date:'May 11, 2026',
-    href:'https://www.revzilla.com/common-tread/may-2026-custom-roundup' },
+
+// Live RSS feeds (confirmed working)
+const NEWS_SOURCES = [
+  { tag:'WorldSBK',    tagColor:'blue',  color:['#1a3a8f','#0d2260'], rss:'https://www.worldsbk.com/en/news/rss',                   count:2 },
+  { tag:'MotoAmerica', tagColor:'green', color:['#1a5c2a','#0d3a1a'], rss:'https://www.motoamerica.com/feed/',                       count:2 },
+  { tag:'Gear',        tagColor:'green', color:['#1a6640','#0d3a20'], rss:'https://www.revzilla.com/common-tread/feed.rss',           count:2 },
 ];
 
-function renderHome() {
-  // Hero stats
+// MotoGP has no public RSS — pinned as static fallback articles
+const NEWS_PINNED = [
+  { tag:'MotoGP', tagColor:'red', color:['#8a0000','#3a0000'], img:null,
+    title:'Comeback King Martin Produces Sunday Magic to Beat Bezzecchi in France',
+    body:'Jorge Martin charged from P8 to P1 in the opening corners at Le Mans to claim his first win in 588 days, with Ai Ogura completing the podium as the first Japanese MotoGP finisher in 14 years.',
+    date:'May 10, 2026', ts: new Date('2026-05-10').getTime(),
+    href:'https://www.motogp.com/en/news/2026/05/10/comeback-king-martin-produces-sunday-magic-to-beat-bezzecchi-in-france/1064616' },
+  { tag:'MotoGP', tagColor:'red', color:['#8a0000','#3a0000'], img:null,
+    title:'Martin Sprints to Saturday Gold as Marc Marquez Suffers DNF in Le Mans',
+    body:'Jorge Martin took Sprint victory at Le Mans while championship leader Marco Bezzecchi finished third. Marc Marquez crashed out in the closing stages, handing rivals crucial points.',
+    date:'May 9, 2026', ts: new Date('2026-05-09').getTime(),
+    href:'https://www.motogp.com/en/news/2026/05/09/martin-sprints-to-saturday-gold-as-marc-marquez-suffers-dnf-in-le-mans/1064615' },
+];
+
+const RSS2JSON  = 'https://api.rss2json.com/v1/api.json';
+const NEWS_KEY  = 'tl_news_cache';
+const NEWS_TTL  = 30 * 60 * 1000; // 30 min
+
+function stripHtml(html) {
+  return (html || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&#?\w+;/g, '')
+    .replace(/\s+/g, ' ').trim();
+}
+
+async function fetchNews() {
+  // Return cache if fresh
+  try {
+    const c = JSON.parse(localStorage.getItem(NEWS_KEY) || 'null');
+    if (c && Date.now() - c.ts < NEWS_TTL) return c.items;
+  } catch {}
+
+  // Fetch all feeds in parallel, ignore failures
+  const results = await Promise.allSettled(
+    NEWS_SOURCES.map(src =>
+      fetch(`${RSS2JSON}?rss_url=${encodeURIComponent(src.rss)}&count=${src.count}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.status !== 'ok') return [];
+          return data.items.map(item => {
+            const raw  = item.pubDate || '';
+            const ts   = raw ? new Date(raw.replace(' ', 'T')).getTime() : 0;
+            const date = raw ? fmtDate(raw.slice(0, 10)) : '';
+            const body = stripHtml(item.description).slice(0, 180).replace(/\s+\S*$/, '') + '…';
+            return { tag: src.tag, tagColor: src.tagColor, color: src.color,
+                     img: item.thumbnail || null, title: item.title,
+                     body, date, ts, href: item.link };
+          });
+        })
+        .catch(() => [])
+    )
+  );
+
+  const live = results.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
+  const all  = [...NEWS_PINNED, ...live]
+    .sort((a, b) => (b.ts || 0) - (a.ts || 0))
+    .slice(0, 6);
+
+  const items = all.length >= 3 ? all : NEWS_PINNED;
+  try { localStorage.setItem(NEWS_KEY, JSON.stringify({ ts: Date.now(), items })); } catch {}
+  return items;
+}
+
+function renderNewsGrid(news) {
+  document.getElementById('news-grid').innerHTML = news.map(n => `
+    <a class="news-card" href="${n.href}" target="_blank" rel="noopener">
+      <div class="news-img" style="background:linear-gradient(135deg,${n.color[0]},${n.color[1]})">
+        ${n.img ? `<img src="${n.img}" alt="" onerror="this.remove()">` : ''}
+        <span class="news-source">${n.tag}</span>
+      </div>
+      <span class="news-tag ${n.tagColor}">${n.tag}</span>
+      <div class="news-title">${esc(n.title)}</div>
+      <div class="news-body">${esc(n.body)}</div>
+      <div class="news-date">${n.date}</div>
+    </a>`).join('');
+}
+
+async function renderHome() {
+  // Hero stats (instant)
   const heroStats = document.getElementById('hero-stats');
-  const total     = sessions.length;
-  const allBests  = sessions.map(s => bestLap(s.laps)).filter(Boolean);
-  const overall   = bestLap(allBests);
-  const trackSet  = new Set(sessions.map(s => s.track).filter(Boolean));
+  const total    = sessions.length;
+  const allBests = sessions.map(s => bestLap(s.laps)).filter(Boolean);
+  const overall  = bestLap(allBests);
+  const trackSet = new Set(sessions.map(s => s.track).filter(Boolean));
   heroStats.innerHTML = [
     { val: total,              cls: '',       lbl: 'Sessions Logged' },
     { val: trackSet.size || 0, cls: '',       lbl: 'Tracks Visited'  },
@@ -181,18 +227,10 @@ function renderHome() {
       <div class="hero-stat-lbl">${s.lbl}</div>
     </div>`).join('');
 
-  // News
-  document.getElementById('news-grid').innerHTML = NEWS.map(n => `
-    <a class="news-card" href="${n.href}" target="_blank" rel="noopener">
-      <div class="news-img" style="background:linear-gradient(135deg,${n.color[0]},${n.color[1]})">
-        ${n.img ? `<img src="${n.img}" alt="" onerror="this.remove()">` : ''}
-        <span class="news-source">${n.tag}</span>
-      </div>
-      <span class="news-tag ${n.tagColor}">${n.tag}</span>
-      <div class="news-title">${n.title}</div>
-      <div class="news-body">${n.body}</div>
-      <div class="news-date">${n.date}</div>
-    </a>`).join('');
+  // News — show pinned instantly, swap in live feed when ready
+  renderNewsGrid(NEWS_PINNED);
+  const news = await fetchNews();
+  renderNewsGrid(news);
 }
 
 // ── PROFILE ───────────────────────────────────────────────────────
