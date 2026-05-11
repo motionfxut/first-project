@@ -1304,14 +1304,24 @@ textarea { resize: vertical; min-height: 72px; }
 
 /* ── NEWS CARD IMAGE ─────────────────────────────────────────── */
 .news-img {
-  height: 90px;
+  height: 140px;
   border-radius: var(--r-sm);
   margin: -4px -4px 8px;
+  position: relative;
   display: flex;
   align-items: flex-end;
   padding: 10px 12px;
   overflow: hidden;
 }
+.news-img img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+.news-source { position: relative; z-index: 1; }
 
 .news-source {
   font-size: .65rem;

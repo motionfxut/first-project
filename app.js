@@ -125,30 +125,42 @@ document.querySelectorAll('[data-page]').forEach(el => {
 
 // ── HOME ─────────────────────────────────────────────────────────
 const NEWS = [
-  { tag:'MotoGP', tagColor:'red', color:['#cc0000','#7a0000'],
-    title:'Marc Marquez Dominates at Jerez to Extend Championship Lead',
-    body:'The Ducati factory rider claimed a commanding victory at the Gran Premio de España, pulling away from Francesco Bagnaia in the closing stages to open a 19-point gap at the top.',
-    date:'May 5, 2026', href:'https://www.motogp.com/en/news' },
+  { tag:'MotoGP', tagColor:'red', color:['#8a0000','#3a0000'],
+    img: null,
+    title:'Comeback King Martin Produces Sunday Magic to Beat Bezzecchi in France',
+    body:'Jorge Martin charged from P8 to P1 in the opening corners at Le Mans to claim his first win in 588 days, with Ai Ogura completing the podium as the first Japanese MotoGP finisher in 14 years.',
+    date:'May 10, 2026',
+    href:'https://www.motogp.com/en/news/2026/05/10/comeback-king-martin-produces-sunday-magic-to-beat-bezzecchi-in-france/1064616' },
+  { tag:'MotoGP', tagColor:'red', color:['#8a0000','#3a0000'],
+    img: null,
+    title:'Martin Sprints to Saturday Gold as Marc Marquez Suffers DNF in Le Mans',
+    body:'Jorge Martin took Sprint victory at Le Mans while championship leader Marco Bezzecchi finished third. Marc Marquez crashed out in the closing stages, handing rivals crucial points.',
+    date:'May 9, 2026',
+    href:'https://www.motogp.com/en/news/2026/05/09/martin-sprints-to-saturday-gold-as-marc-marquez-suffers-dnf-in-le-mans/1064615' },
   { tag:'WorldSBK', tagColor:'blue', color:['#1a3a8f','#0d2260'],
-    title:'Toprak Razgatlioglu Takes Assen Race 1 in Style for BMW',
-    body:'The defending WSBK champion extended his points lead at TT Circuit Assen, delivering a flawless performance on the M 1000 RR ahead of Nicolo Bulega\'s Ducati.',
-    date:'May 3, 2026', href:'https://www.worldsbk.com/en/news' },
-  { tag:'Moto America', tagColor:'green', color:['#1a5c2a','#0d3a1a'],
-    title:'Moto America Superbike Heads to The Ridge Motorsports Park',
-    body:'Round 3 of the 2026 Moto America Superbike Championship visits one of the most technical layouts on the calendar. Championship leader and last year\'s winner are both expected to contend.',
-    date:'Apr 29, 2026', href:'https://motoamerica.com/news/' },
-  { tag:'Track Day', tagColor:'', color:['#111110','#2a2a28'],
-    title:'N2 Track Days Adds Oregon Raceway Park and New HPR Dates',
-    body:'N2 expands its Pacific Northwest and Colorado schedules with additional intermediate and open sessions. Early registration for July events opens May 15 — spots fill fast.',
-    date:'Apr 25, 2026', href:'https://www.n2trackdays.com' },
+    img: 'https://photos.worldsbk.com/2026/05/02/bulega-14-wins_full.jpg',
+    title:'14 Consecutive Wins for Bulega: Ducati Rider Breaks All-Time Record at Balaton Park',
+    body:'Nicolò Bulega surpassed Toprak Razgatlioglu\'s record of 13 straight wins, extending his dominant streak dating back to October 2025 with a commanding Race 1 victory in Hungary.',
+    date:'May 2, 2026',
+    href:'https://www.worldsbk.com/en/news/2026/14+CONSECUTIVE+WINS+FOR+BULEGA+Its+a+dreamIm+really+happy+to+achieve+this+with+this+team' },
   { tag:'WorldSBK', tagColor:'blue', color:['#1a3a8f','#0d2260'],
-    title:'Jonathan Rea Confirms Return to Full WorldSBK Calendar',
-    body:'The six-time world champion confirms he will rejoin the Pata Prometeon Yamaha team from the Misano round following his early-season injury, looking to recapture championship form.',
-    date:'Apr 21, 2026', href:'https://www.worldsbk.com/en/news' },
-  { tag:'Gear', tagColor:'green', color:['#1a8f52','#0d5c35'],
-    title:'Michelin Power Cup 2 EVO: Updated Compound for 2026',
-    body:'Michelin\'s revised track day tire features improved heat cycle resilience and faster warm-up times. Available at RevZilla, Cycle Gear, and major dealers beginning June.',
-    date:'Apr 16, 2026', href:'https://www.revzilla.com/motorcycle/sport-tires' },
+    img: 'https://photos.worldsbk.com/2026/05/03/wsbk-race2-report_full.jpg',
+    title:'Best Ever Start: Bulega Wraps Up Balaton Park Hat-Trick Ahead of Lecuona',
+    body:'Bulega extended his streak to 16 consecutive wins — the first rider ever to win the first 12 races of a season — beating teammate Iker Lecuona by 2.5 seconds in Race 2 at Balaton Park.',
+    date:'May 3, 2026',
+    href:'https://www.worldsbk.com/en/news/2026/BEST+EVER+START+Bulega+makes+more+history+as+he+wraps+up+Balaton+Park+hattrick+ahead+of+Lecuona' },
+  { tag:'MotoAmerica', tagColor:'green', color:['#1a5c2a','#0d3a1a'],
+    img: 'https://www.motoamerica.com/wp-content/uploads/2026/05/BJND6796_P-scaled.jpg',
+    title:'May Day! The Balance of Power Within the Mission King of the Baggers Championship',
+    body:'MotoAmerica raised the Harley-Davidson rev limit from 7,000 to 7,200 rpm in a bid to close the gap to Indian Challenger\'s 7,700 rpm ceiling, ahead of the Road America round May 29–31.',
+    date:'May 1, 2026',
+    href:'https://www.motoamerica.com/may-day-may-day-the-balance-of-power-within-the-mission-king-of-the-baggers-championship/' },
+  { tag:'Gear', tagColor:'green', color:['#1a6640','#0d3a20'],
+    img: 'https://www.revzilla.com/blog_content_image/image/103236/redline_hero/title-image.jpg',
+    title:'May Custom Roundup: Three Customs Built for Dirt, Asphalt, and Ice',
+    body:'RevZilla\'s Common Tread highlights a Super Hooligan CFMOTO flat tracker, Auto Fabrica\'s minimalist CB750 Type 26, and a studded Yamaha XSR900 purpose-built for ice racing.',
+    date:'May 11, 2026',
+    href:'https://www.revzilla.com/common-tread/may-2026-custom-roundup' },
 ];
 
 function renderHome() {
@@ -173,6 +185,7 @@ function renderHome() {
   document.getElementById('news-grid').innerHTML = NEWS.map(n => `
     <a class="news-card" href="${n.href}" target="_blank" rel="noopener">
       <div class="news-img" style="background:linear-gradient(135deg,${n.color[0]},${n.color[1]})">
+        ${n.img ? `<img src="${n.img}" alt="" onerror="this.remove()">` : ''}
         <span class="news-source">${n.tag}</span>
       </div>
       <span class="news-tag ${n.tagColor}">${n.tag}</span>
